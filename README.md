@@ -1,8 +1,11 @@
 # hots-parser
 A Heroes of the Storm replays files parser
 
-How to run it:
+## How to run it:
+
+```
 python main.py </path/to/replay.StormReplay>
+```
 
 You should see a sample output like this one: 
 ```
