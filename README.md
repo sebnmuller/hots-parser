@@ -44,15 +44,10 @@ Team 1 controlled temples 65.0 percent of the time (245 seconds)
 ```
 This is just a small sample of what is being calculated, check `models/__init__.py` for a comprehensive list of metrics being calculated
 
-## Pre-requisites
-* MySQLdb (to store the data into a MySQL database, work in progress)
-
-## TODO
-* Restructure the code, separate the logic to parse each map in different files.
-* Finish the code to store the data in MySQL (or any other DB)
-* Add metrics for Towers of Doom and Battlefield of Eternity.
-* Add support for new events present in the PTR
-* Improve the protocol identification, right now it's assuming the file is protocol39445
+## How to help
+There are several ways you can help:
+* Help with the [current open issues] (https://github.com/crorella/hots-parser/issues)
+* Help [giving more ideas] (https://github.com/crorella/hots-parser/issues/5) on what to track and how to track it.
 
 
 ## Metrics currently tracked
