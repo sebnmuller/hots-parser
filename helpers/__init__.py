@@ -35,41 +35,51 @@ def calculate_distance(x1, y1, x2, y2):
 
 def get_unit_owners(e, unitsInGame, totalDuration):
     """
-    Get the owner of the unit and the time the unit was owned.
+    Get the owner of the unit and the time the unit was owned
     """
-    # This is for towers
-    if e['_event'] == 'NNet.Replay.Tracker.SUnitOwnerChangeEvent' and e['m_upkeepPlayerId'] in (11, 12, 0):
+
+    # This is for units where the ownership is not permanent, like Sky Temple towers, Ghost Ship and Dragon Statue
+    # one common trait among these units is that ownership will alternate between teams (teams 11 and 12) and map (team 0)
+
+    if e['_event'] == 'NNet.Replay.Tracker.SUnitOwnerChangeEvent':
         unitTag = get_unit_tag(e)
-        if unitsInGame[unitTag].is_sky_temple_tower() or unitsInGame[unitTag].is_dragon_statue() or unitsInGame[unitTag].is_ghostship():
-            owner = e['m_upkeepPlayerId'] - 11
-            ownerTuple = (owner, get_seconds_from_event_gameloop(e), totalDuration - get_seconds_from_event_gameloop(e)) # owner, when, duration (None = forever)
-            totalOwners = len(unitsInGame[unitTag].ownerList)
-            if len(unitsInGame[unitTag].ownerList) > 0: # update duration (in secs) for previous capture
-                unitsInGame[unitTag].ownerList[totalOwners - 1][2] = int(ownerTuple[1] - unitsInGame[unitTag].ownerList[totalOwners-1][1])
-            unitsInGame[unitTag].ownerList.append(list(ownerTuple))
+        unit = unitsInGame[unitTag]
+        if unit.is_sky_temple_tower() or unit.is_dragon_statue() or unit.is_ghostship():
+            if e['m_upkeepPlayerId'] in (11, 12, 0):
+                owner = e['m_upkeepPlayerId'] - 11
+            elif e['m_upkeepPlayerId'] in xrange(1,6): # If the player is in the slots 1 to 5, then team 0
+                owner = 0
+            elif e['m_upkeepPlayerId'] in xrange(6,11): # If the player is in the slots 6 to 10, then team 1
+                owner = 1
+            ownerTuple = (owner, get_seconds_from_event_gameloop(e), None) # owner, when, duration (None = forever)
+            totalOwners = len(unit.ownerList)
+            if len(unit.ownerList) > 0: # update duration (in secs) for previous capture
+                unit.ownerList[totalOwners - 1][2] = int(ownerTuple[1] - unit.ownerList[totalOwners-1][1])
+            unit.ownerList.append(list(ownerTuple))
 
 
     # This is for pickable units
-    if e['_event'] == 'NNet.Replay.Tracker.SUnitOwnerChangeEvent' and e['m_upkeepPlayerId'] in xrange(0,11):
-        unitTag = get_unit_tag(e)
+        if e['_event'] == 'NNet.Replay.Tracker.SUnitOwnerChangeEvent' and e['m_upkeepPlayerId'] in xrange(0,11):
+            unitTag = get_unit_tag(e)
 
 
     # This is for vehicles (Dragon, Plant)
 
-        if unitsInGame[unitTag].is_plant_vehicle() :
-            owner = e['m_upkeepPlayerId'] - 1
-            unitsInGame[unitTag].bornAt = get_seconds_from_event_gameloop(e)
-            unitsInGame[unitTag].bornAtGameLoops = e['_gameloop']
-            unitsInGame[unitTag].positions[e['_gameloop']] = [unitsInGame[unitTag].bornAtX, unitsInGame[unitTag].bornAtY]
-            #ownerTuple = (owner, unitsInGame[unitTag].bornAt, get_seconds_from_event_gameloop(e)-unitsInGame[unitTag].bornAt)
-            ownerTuple = (owner, unitsInGame[unitTag].bornAt, 0)
-            unitsInGame[unitTag].ownerList.append(list(ownerTuple))
+            if unit.is_plant_vehicle() :
+                owner = e['m_upkeepPlayerId'] - 1
+                unit.bornAt = get_seconds_from_event_gameloop(e)
+                unit.bornAtGameLoops = e['_gameloop']
+                unit.positions[e['_gameloop']] = [unit.bornAtX, unitsInGame[unitTag].bornAtY]
+                #ownerTuple = (owner, unit.bornAt, get_seconds_from_event_gameloop(e)-unit.bornAt)
+                ownerTuple = (owner, unit.bornAt, 0)
+                unit.ownerList.append(list(ownerTuple))
 
 
-        elif not unitsInGame[unitTag].is_sky_temple_tower() and not unitsInGame[unitTag].is_plant_vehicle() and not unitsInGame[unitTag].is_ghostship():
-            owner = e['m_upkeepPlayerId'] - 1
-            ownerTuple = (owner, get_seconds_from_event_gameloop(e), 0)
-            unitsInGame[unitTag].ownerList.append(list(ownerTuple))
+            elif not unit.is_sky_temple_tower() and not unit.is_plant_vehicle() \
+                    and not unit.is_ghostship() and not unit.is_dragon_statue():
+                owner = e['m_upkeepPlayerId'] - 1
+                ownerTuple = (owner, get_seconds_from_event_gameloop(e), 0)
+                unit.ownerList.append(list(ownerTuple))
 
 
 

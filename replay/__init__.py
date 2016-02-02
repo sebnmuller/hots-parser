@@ -65,11 +65,11 @@ class Replay():
             self.players[player['m_workingSetSlotId']] = p
 
     def process_replay_initdata(self):
-        return 0
-        # contents = self.replayFile.read_file('replay.initData')
-        # initdata = self.protocol.decode_replay_initdata(contents)
-        # self.replayInfo.randomVal = initdata['m_syncLobbyState']['m_gameDescription']['m_randomValue']
-        # self.replayInfo.speed = initdata['m_syncLobbyState']['m_gameDescription']['m_gameSpeed']
+        #return 0
+        contents = self.replayFile.read_file('replay.initData')
+        initdata = self.protocol.decode_replay_initdata(contents)
+        self.replayInfo.randomVal = initdata['m_syncLobbyState']['m_gameDescription']['m_randomValue']
+        self.replayInfo.speed = initdata['m_syncLobbyState']['m_gameDescription']['m_gameSpeed']
 
 
     def process_replay_header(self):
@@ -395,9 +395,9 @@ class Replay():
                 units_killed_during = 0
                 buildings_killed_during = 0
                 dragon_unit = dragon_creation_time[max([gl for gl in dragon_creation_time_sorted if gl < upgrade])]
-                contested_time = sum([dur for team, when, dur in dragon_unit.ownerList if team == -1 and when not in dragon_creation_time])
-                wasted_dragon_time_t0 = sum([dur for team, when, dur in dragon_unit.ownerList if team == 0 and when not in dragon_creation_time])
-                wasted_dragon_time_t1 = sum([dur for team, when, dur in dragon_unit.ownerList if team == 1 and when not in dragon_creation_time])
+                contested_time = sum([(dur or 0) for team, when, dur in dragon_unit.ownerList if team == -1 and when not in dragon_creation_time])
+                wasted_dragon_time_t0 = sum([(dur or 0) for team, when, dur in dragon_unit.ownerList if team == 0 and when not in dragon_creation_time])
+                wasted_dragon_time_t1 = sum([(dur or 0)for team, when, dur in dragon_unit.ownerList if team == 1 and when not in dragon_creation_time])
                 dragon_created_at = get_seconds_from_int_gameloop(self.upgrades[upgrade].gameloops)
                 dragon_unit.positions[self.upgrades[upgrade].gameloops] = [dragon_unit.bornAtX, dragon_unit.bornAtY]
                 dragon_unit.bornAtGameLoops = self.upgrades[upgrade].gameloops
