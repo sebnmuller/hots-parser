@@ -5,7 +5,6 @@ from heroprotocol import protocol39445
 from heroprotocol.mpyq import mpyq
 from os import walk, path
 from parser import processEvents
-#from utils.db import DB
 
 
 
@@ -16,26 +15,6 @@ def save_to_db(replayData, path):
     just to give an idea of what is being calculated
     """
     if replayData:
-
-        # print "Saving match info"
-        # db.save_match_info(replayData, path)
-        # print "Saving Teams"
-        # db.save_teams(replayData)
-        # print "Saving Heroes"
-        # db.save_heroes(replayData)
-        # print "Saving Players"
-        # db.save_players(replayData)
-        # print "Saving hero stats for the match"
-        # db.save_hero_match_stats(replayData)
-        # db.save_heroes(replayData)
-
-        #for p in replayData.heroList:
-            # for loop in replayData.heroList[p].castedAbilities:
-            #     print replayData.heroList[p].castedAbilities[loop]
-            #     if hasattr(replayData.heroList[p].castedAbilities[loop], 'targetUnitTag'):
-            #         print "\t\t\t\tCasted On: %s" % (replayData.unitsInGame[replayData.heroList[p].castedAbilities[loop].targetUnitTag].internalName)
-            # print "\n\n\n\n"
-
 
         print "=== MAP: %s ===" % replayData.replayInfo.internalMapName
         print "Duration: %s secs (%s gl)" % (replayData.replayInfo.duration_in_secs(), replayData.replayInfo.gameLoops)
@@ -135,20 +114,21 @@ def save_to_db(replayData, path):
             t0 = replayData.team0
             t1 = replayData.team1
 
+
             print "Team 0 spawned %s dragons that were alive a total of %s seconds" % (len(t0.totaldragonsSummoned), sum(t0.totaldragonsDuration.values()))
+            print "Team 1 spawned %s dragons that were alive a total of %s seconds" % (len(t1.totaldragonsSummoned), sum(t1.totaldragonsDuration.values()))
+
+
             if len(t0.totaldragonsSummoned) > 0:
                 for dragon in xrange(1, len(t0.totaldragonsSummoned) + 1):
                     print "\t Dragon %s, summoned at %s, alive for %s had an effectiveness of %s (%s units killed and %s buildings destroyed) " % (dragon, t0.totaldragonsSummoned[dragon], t0.totaldragonsDuration[dragon],  t0.dragonEffectiveness[dragon], t0.totalUnitsKilledDuringdragon[dragon], t0.totalBuildingsKilledDuringdragon[dragon])
 
             if len(t1.totaldragonsSummoned) > 0:
-                print "Team 1 spawned %s dragons that were alive a total of %s seconds" % (len(t1.totaldragonsSummoned), sum(t1.totaldragonsDuration.values()))
                 for dragon in xrange(1, len(t1.totaldragonsSummoned) + 1):
                     print "\t Dragon %s, summoned at %s, alive for %s had an effectiveness of %s (%s units killed and %s buildings destroyed) " % (dragon, t1.totaldragonsSummoned[dragon], t1.totaldragonsDuration[dragon], t1.dragonEffectiveness[dragon], t1.totalUnitsKilledDuringdragon[dragon], t1.totalBuildingsKilledDuringdragon[dragon])
 
             for dragon in t0.wastedDragonTime:
-                print "\t In the dragon %s, Team 1 had the control of the statue during %s seconds before someone took control of it" % (dragon, t0.wastedDragonTime[dragon])
-            for dragon in t1.wastedDragonTime:
-                print "\t In the dragon %s, Team 0 had the control of the statue during %s seconds before someone took control of it" % (dragon, t1.wastedDragonTime[dragon])
+                print "\t In dragon %s, Team 0 had the control for %s seconds before it changed ownership, Team 1 had it for %s seconds " % (dragon, t0.wastedDragonTime[dragon], t1.wastedDragonTime[dragon])
 
 
         if mapName.strip() == 'Infernal Shrines':
