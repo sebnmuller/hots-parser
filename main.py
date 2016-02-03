@@ -1,10 +1,13 @@
 __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
 import argparse
-from heroprotocol import protocol39445
+from heroprotocol import protocol39951 as protocol
 from heroprotocol.mpyq import mpyq
-from os import walk, path
+from os import path
 from parser import processEvents
+import json
+import datetime
+import jsonpickle
 
 
 
@@ -161,32 +164,96 @@ def save_to_db(replayData, path):
                 for ship in t1.totalShipsControlled.keys():
                     print "\t During ship %s a total of %s unit died and %s buildings where destroyed, the effectiveness index is %s" % (ship, t1.totalUnitsKilledDuringShip[ship], t1.totalBuildingsDestroyedDuringShip[ship], t1.shipEffectiveness[ship])
 
+def dump_data(entities=None, replay_data=None, file_path=None):
+    if not entities or not path or not replay_data:
+        return None
+
+    file_path = path.join(file_path, '%s_' % (datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")))
+
+
+    if entities == 'all':
+        dump_heroes(data=replay_data, output_path=file_path)
+        dump_teams(data=replay_data, output_path=file_path)
+        dump_units(data=replay_data, output_path=file_path)
+
+    if entities == 'heroes':
+        dump_heroes(data=replay_data, output_path=file_path)
+
+    if entities == 'teams':
+        dump_teams(data=replay_data, output_path=file_path)
+
+    if entities == 'units':
+        dump_units(data=replay_data, output_path=file_path)
+
+
+def dump_heroes(data=None, output_path=None):
+    if not data or not output_path:
+        return None
+    file_path = output_path + "heroes.json"
+    print "dumping heroes data into %s" % (file_path)
+    with file(file_path, 'w') as f:
+            dump = jsonpickle.encode(data.heroList)
+            f.write(dump)
+
+def dump_units(data=None, output_path=None):
+    if not data or not output_path:
+        return None
+    file_path = output_path + "units.json"
+    print "dumping units data into %s" % (file_path)
+    with file(file_path, 'w') as f:
+            dump = jsonpickle.encode(data.unitsInGame)
+            f.write(dump)
+
+def dump_teams(data=None, output_path=None):
+    if not data or not output_path:
+        return None
+    file_path = output_path + "teams.json"
+    print "dumping teams data into %s" % (file_path)
+    with file(file_path, 'w') as f:
+
+            dump = "[" + jsonpickle.encode(data.team0)
+            f.write(dump)
+
+            dump = "," + jsonpickle.encode(data.team1) + "]"
+            f.write(dump)
+
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('replay_file', help='.StormReplay file to load')
+    parser.add_argument('-o', '--output-dir', help='Path to the output directory')
+    parser.add_argument('-r', '--dump-heroes',  action='store_true', default=False, help='Indicates you want to dump hero data')
+    parser.add_argument('-t', '--dump-teams', action='store_true', default=False, help='Indicates you want to dump teams data')
+    parser.add_argument('-u', '--dump-units',action='store_true', default=False, help='Indicates you want to dump units data')
+    parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units')
+    parser.add_argument('replay_path', help='Path to the .StormReplay file to process')
     args = parser.parse_args()
 
+    print "Processing: %s" % (args.replay_path)
 
     replayData = None
+    replay = mpyq.MPQArchive(args.replay_path)
+    replayData = processEvents(protocol, replay)
 
-    if not args.replay_file:
-        for directory, dirnames, filenames in walk('/data/replays'):
-            for file in filenames:
-                if file.endswith('StormReplay'):
-                    try:
-                        file_path = path.join(directory, file)
-                        print file_path
-                        replay = mpyq.MPQArchive(file_path)
-                        replayData = processEvents(protocol39445, replay)
-                        save_to_db(replayData, file_path)
-                    except Exception, e:
-                        print "Error while trying to process %s: %s" % (file_path, e)
-
+    if (args.output_dir):
+        if not path.exists(args.output_dir): # check if the provided path exists
+            print 'Error - Path %s does not exist' % (args.output_dir)
+            exit(0)
+        output_path = args.output_dir
 
     else:
-            replay = mpyq.MPQArchive(args.replay_file)
-            replayData = processEvents(protocol39445, replay) #right now assuming protocol39445
-            save_to_db(replayData, args.replay_file)
+        # If the parameter is not provided then assume the output is the same folder this script resides
+        output_path = path.dirname(path.abspath(__file__))
+
+    if (args.dump_all):
+        dump_data(entities='all', file_path=output_path, replay_data=replayData)
+    elif args.dump_heroes or args.dump_teams or args.dump_units:
+        if (args.dump_heroes):
+            dump_data(entities='heroes', file_path=output_path, replay_data=replayData)
+        if (args.dump_teams):
+            dump_data(entities='teams', file_path=output_path, replay_data=replayData)
+        if (args.dump_units):
+            dump_data(entities='units', file_path=output_path, replay_data=replayData)
+    else:
+        save_to_db(replayData, args.replay_path)

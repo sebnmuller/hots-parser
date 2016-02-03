@@ -432,8 +432,6 @@ class Replay():
                 self.team0.wastedDragonTime[general_dragon_count] = wasted_dragon_time_t0
                 self.team1.wastedDragonTime[general_dragon_count] = wasted_dragon_time_t1
 
-                print self.team0.wastedDragonTime[general_dragon_count], self.team1.wastedDragonTime[general_dragon_count], contested_time
-
                 #
                 if owner_team == 0:
                     dragon_count_0 += 1
