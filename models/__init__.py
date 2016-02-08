@@ -1,6 +1,5 @@
 __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
-from collections import OrderedDict
 from helpers import *
 from data import *
 
@@ -12,6 +11,13 @@ class Team():
         self.memberList = list()
         self.isWinner = None
         self.isLoser = None
+        self.periodicXPBreakdown = []
+        self.totalXP = 0
+        self.totalMinionXP = 0
+        self.totalCreepXP = 0
+        self.totalStructureXP = 0
+        self.totalHeroXP = 0
+        self.totalTrickleXP = 0
         self.wastedSoulGems = 0 # Totan number of gems no one took in Tomb of the Spider Queen map
         self.pickedSoulGems = 0
         self.summonedSpiderBosses = 0
@@ -28,8 +34,6 @@ class Team():
         self.totalBuildingsKilledDuringSouthSpider = 0
         self.totalUnitsKilledDuringSouthSpider = 0
         self.missedRegenGlobes = 0  # regen globes no one took
-        self.summonedPlantBosses = 0
-        self.plantBossesTotalAliveTime = 0
         self.luxoriaTemplesCaptured = 0
         self.luxoriaTemplesCapturedSeconds = 0
         self.luxoriaTempleNorthCapturedSeconds = 0
@@ -45,49 +49,84 @@ class Team():
         self.watchTowersTaken = 0
         self.bossTaken = 0
         self.mercsTaken = 0
-        self.totalPlantsSummoned = {} # plant number, value
-        self.totalPlantsDuration = {} # plant number, value
-        self.totalUnitsKilledByPlants = {} # plant number, value
-        self.totalBuildingsKilledByPlants = {} # plant number, value
-        self.totalBuildingsKilledDuringPlant = {}
-        self.totalUnitsKilledDuringPlant = {}
-        self.totalPlantPotsPlaced = {} # plant number, value
-        self.plantEffectiveness = {} # plant number, value
-        self.totalPlantPotsKilled = 0 # plant number, value
-        self.totaldragonsSummoned = {}
-        self.totaldragonsDuration = {}
-        self.totalUnitsKilledBydragons = {}
-        self.totalBuildingsKilledBydragons = {}
-        self.dragonEffectiveness = {}
-        self.totalBuildingsKilledDuringdragon = {}
-        self.totalUnitsKilledDuringdragon = {}
-        self.wastedDragonTime = {} # How many seconds the dragon was available to be controlled but no one used it.
-        self.totalGolemsSummoned = {}
-        self.totalGolemDistanceTraveled = {}
-        self.golemEffectiveness = {}
-        self.totalUnitsKilledByGolem = {}
-        self.totalBuildingsKilledByGolem = {}
-        self.totalUnitsKilledDuringGolem = {}
-        self.totalBuildingsKilledDuringGolem = {}
-        self.totalGolemDuration = {}
-        self.totalShipsControlled = {} # ship number: time that took to take the ship
-        self.totalUnitsKilledDuringShip = {}
-        self.totalBuildingsDestroyedDuringShip = {}
-        self.shipEffectiveness = {}
+        self.siegeCampTaken = 0
+        self.plantSumonedAt = []
+        self.totalPlantsSummoned = 0
+        self.totalPlantsDuration = 0
+        self.plantDuration = []
+        self.totalUnitsKilledByPlants = []
+        self.totalBuildingsKilledByPlants = []
+        self.totalBuildingsKilledDuringPlant = []
+        self.totalUnitsKilledDuringPlant = []
+        self.totalPlantPotsPlaced = 0
+        self.plantEffectiveness = []
+        self.totalPlantPotsKilled = 0
+        self.totalDragonsSummoned = 0
+        self.dragonCaptureTimes = [] # in seconds
+        self.totalDragonsDuration = 0
+        self.dragonDuration = []
+        self.totalUnitsKilledBydragons = []
+        self.totalBuildingsKilledBydragons = []
+        self.dragonEffectiveness = []
+        self.totalBuildingsKilledDuringdragon = []
+        self.totalUnitsKilledDuringdragon = []
+        self.wastedDragonTime = [] # How many seconds the dragon was available to be controlled but no one used it.
+        self.totalGolemsSummoned = 0
+        self.totalGolemDistanceTraveled = 0
+        self.golemDistanceTraveled = []
+        self.golemEffectiveness = []
+        self.golemDuration = []
+        self.totalUnitsKilledByGolem = 0
+        self.unitsKilledByGolem = []
+        self.totalBuildingsKilledByGolem = 0
+        self.buildingsKilledByGolem = []
+        self.totalUnitsKilledDuringGolem = 0
+        self.unitsKilledDuringGolem = []
+        self.totalBuildingsKilledDuringGolem = 0
+        self.buildingsKilledDuringGolem = []
+        self.totalGolemDuration = 0
+        self.totalShipsControlled = 0
+        self.totalUnitsKilledDuringShip = []
+        self.shipDurations = []
+        self.totalBuildingsDestroyedDuringShip = []
+        self.ghostShipScore = []
+        self.shipEffectiveness = []
         self.summonedPunishers = 0
-        self.punishedSummonedAt = {}
-        self.punisherTotalAliveTime = {}
-        self.totalBuildingsKilledDuringPunisher = {}
-        self.totalUnitsKilledDuringPunisher = {}
-        self.punisherEfectiveness = {}
-        self.punisherType = {}
+        self.punisherSummonedAt = []
+        self.punisherTotalAliveTime = []
+        self.totalBuildingsKilledDuringPunisher = []
+        self.totalUnitsKilledDuringPunisher = []
+        self.punisherEfectiveness = []
+        self.punisherHeroDmg = []
+        self.punisherBuildingDmg = []
+        self.punisherType = []
+        self.levelEvents = []
+        self.tributesCapturedAt = [] # When the tribute was captured
+        self.totalTowersCaptured = 0 # for Towers of Doom Maps
+        self.towersCapturedAtFire = []
+        self.towersCapturedAt = []
+        self.altarsCapturedAt = [] #When was the altar captured by the team?
+        self.totalAltarsCaptured = 0
+        self.totalImmortalsSummoned = 0
+        self.immortalSummonedAt = []
+        self.immortalFightDuration = []
+        self.immortalDuration = []
+        self.immortalPower = []
+        self.immortalEffectiveness = []
+        self.unitsKilledDuringImmortal = []
+        self.totalUnitsKilledDuringImmortal = 0
+        self.buildingsDestroyedDuringImmortal = []
+        self.totalBuildingsDestroyedDuringImmortal = 0
+        self.curseCaptures = [] #How many tributes the team captured for each curse. 3 = team won the curse
+        self.curseActivatedAt = []
+        self.totalCursesWon = 0
+        self.shrineScore = []
 
     def add_member(self, hero, players):
-        #print "adding %s to %s" % (hero.playerId, players[hero.playerId].team)
         if hero.playerId is not None:
             self.memberList.append(hero.playerId)
             if self.isWinner is None:
-                self.id = players[hero.playerId].team
+                self.id = "Blue" if players[hero.playerId].team == 0 else "Red"
                 self.isWinner = players[hero.playerId].is_winner()
                 self.isLoser = players[hero.playerId].is_loser()
 
@@ -96,8 +135,6 @@ class Team():
 
     def __str__(self):
         return "%15s\t%15s\t%15s\t%15s" % (self.id, self.level, self.isWinner, self.isLoser)
-
-#    def get_level(self):
 
 
 
@@ -126,7 +163,7 @@ class HeroUnit(Unit):
     def __init__(self, e, players):
         # General data
         self.isHuman = False
-        self.pickedTalents = OrderedDict() # Key = Gameloop, data = talent name
+        self.pickedTalents = [] # list of dicts
 
             # if a new hero unit is born
         if e['_event'] == 'NNet.Replay.Tracker.SUnitBornEvent' and e['m_unitTypeName'].startswith('Hero'):
@@ -144,35 +181,64 @@ class HeroUnit(Unit):
 
         # Metrics
         self.deathCount = 0
-        self.deathList = {} # At what point in game (in seconds) the hero died
+        self.deaths = [] # At what point in game (in seconds) the hero died and who killed them
+        self.secondsDead = 0 # How many seconds the hero was waiting to resurrect
         self.killCountNeutral = 0 # How many neutral npc units this hero killed?
         self.killCountBuildings = 0 # How many buildings this hero destroyed?
         self.killCountMinions = 0 # How many minions this hero killed?
         self.killCount = 0 # How many units this hero killed (normal minions + heroes + buildings + neutral npcs)
-        self.killCountHeroes = 0 # How many heroes this hero killed?
-        self.totalOutDamage = 0 # How much damage this hero did?
+        self.fortsDestroyed = 0 # How many forts this player participated in destroying
+        self.takedowns = 0 # How many heroes this hero killed?
+        self.assists = 0 # How many assists?
+        self.soloKills = 0 # How many solo kills?
+        self.totalXP = 0 # XP contributed to the team
         self.totalOutHeal = 0 # How much heal this hero did?
+        self.totalSelfHeal = 0 # How much this hero healed himself?
         self.totalIncDamage = 0 # How much damage this hero received
         self.totalIncHeal = 0 # How much heal this hero received
+        self.totalSiegeDmg = 0
+        self.totalStructureDmg = 0
+        self.totalMinionDmg = 0
+        self.totalHeroDmg = 0
+        self.totalCreepDmg = 0
+        self.totalSummonDmg = 0
+        self.totalImmortalDmg = 0 # Total damage done to the immortals
+        self.totalGemsTurnedIn = 0
+        self.secondsCCOnEnemies = 0
         self.maxKillSpree = 0 # maximum number of heroes killed after (if ever) die
+        self.capturedBeaconTowers = 0
         self.capturedTributes = 0 # Number of tributes captured by this hero in the Curse map
         self.clickedTributes = 0 # How many times the hero clicked a tribute in the Curse map
+        self.gardensSeedsCollected = 0
+        self.totalShrineMinionDmg = 0 # Damage inflicted to minions in punisher map
         self.totalSoulsTaken = 0 # How many times the hero collected soul shards on the tomb of the spider queen map
         self.capturedMercCamps = 0
-        self.capturedBeaconTowers = 0
+        self.totaltimeInTemples = 0 # How many seconds was the hero holding the temples
         self.regenGlobesTaken = 0
         self.castedAbilities = OrderedDict() # key = gameloops when the ability was casted, value = ability instance
         self.totalPlantsControlled = 0
-        self.totalUnitsKilledAsPlant = {} # plant number, value
-        self.totalBuildingsKilledAsPlant = {} # plant number, value
-        self.totalPolymorphedUnits = {} # plant number, value
-        self.totalPlantPotsPlaced = {} # plant number, value
+        self.unitsKilledAsPlant = []
+        self.totalUnitsKilledAsPlant = 0
+        self.buildingsKilledAsPlant = []
+        self.totalBuildingsKilledAsPlant = 0
+        self.polymorphedUnits = []
+        self.totalPolymorphedUnits = 0
+        self.plantPotsPlaced = 0
+        self.plantDuration = []
+        self.totalPlantPotsPlaced = 0
         self.totalPlantPotsKilled = 0
         self.totalDragonsControlled = 0
-        self.totalBuildingsKilledAsDragon = {}
-        self.totalUnitsKilledAsDragon = {}
+        self.totalShrinesCaptured = 0
+        self.totalBuildingsKilledAsDragon = []
+        self.totalUnitsKilledAsDragon = []
+        self.levelEvents = []
+        self.totalOutDamage = self.getTotalDamage()
+        self.coinsTurnedIn = 0
+        self.coinsCollected = 0
+        self.coinsEffectiveness = 0
 
-
+    def getTotalDamage(self):
+        return self.totalSiegeDmg + self.totalStructureDmg + self.totalMinionDmg + self.totalHeroDmg + self.totalCreepDmg
 
     def __str__(self):
         return "%15s\t%15s\t%15s\t%15s\t%15s\t%15s\t%15s\t%15s\t%15s" % (self.name, self.internalName, self.isHuman, self.playerId, self.userId, self.team, self.unitTag, self.deathCount, self.get_total_casted_abilities())
@@ -197,8 +263,11 @@ class HeroReplay():
         self.gameVersion = None
         self.randomVal = None
         self.mapName = details['m_title']
-        self.internalMapName = None
+        self.mapSize = {}
         self.startTime = win_timestamp_to_date(details['m_timeUTC'])
+        self.gatesOpenedAt = None # seconds into the game when the gates open
+        self.totalCurses = 0
+
 
     def duration_in_secs(self):
         if self.gameLoops:
@@ -207,7 +276,7 @@ class HeroReplay():
             return 0
 
     def __str__(self):
-        return "Title: %s\nStarted at: %s\nDuration (min/gl): %d/%d\nSpeed: %s\nGame Type: %s" % (self.internalMapName,
+        return "Title: %s\nStarted at: %s\nDuration (min/gl): %d/%d\nSpeed: %s\nGame Type: %s" % (self.mapName,
         self.startTime,
         self.duration_in_secs()/60,
         self.gameLoops,

@@ -81,8 +81,6 @@ def get_unit_owners(e, unitsInGame, totalDuration):
                 ownerTuple = (owner, get_seconds_from_event_gameloop(e), 0)
                 unit.ownerList.append(list(ownerTuple))
 
-
-
 def get_position_by_second(unit, total_time):
     pos = OrderedDict()
     iter = 0
@@ -138,10 +136,6 @@ def get_position_by_second(unit, total_time):
     #     print "error here!!! %s" % e
     return pos
 
-
-
-
-
 def get_unit_clicked(e, unitsInGame):
     """
     Gets information when a unit has been clicked by another one. i.e: When clicking tribute or returning souls
@@ -154,30 +148,6 @@ def get_unit_clicked(e, unitsInGame):
                 playerId = e['_userid']['m_userId']
                 clickTuple = (playerId, get_seconds_from_event_gameloop(e))
                 unitsInGame[unitTag].clickerList.append(clickTuple)
-
-
-def get_hero_deaths_from_game_event(e, heroList):
-    """
-    This function works by reading the specific Game Event information
-    Parse the event and looks if a there is a NNet.Game.SCameraUpdateEvent with no m_target (None)
-    this only happens when the camera is pointing to the spawn area. It uses the m_userId instead of
-    the unitIndex.
-    """
-
-    if e['_event'] == 'NNet.Game.SCameraUpdateEvent' and not e['m_target'] and e['_gameloop'] > 10:
-        # find the hero
-        playerId =  find_hero_key_from_user_id(heroList, (e['_userid']['m_userId']))
-        unitTag = [key for (key, value) in sorted(heroList.items()) if value.playerId == playerId][0]
-        eventTime = get_seconds_from_event_gameloop(e)
-
-        if len(heroList[unitTag].deathList.keys()) > 0:
-            if eventTime - int(heroList[unitTag].deathList.keys()[0]) > 12: # we need this to rule out the first event which is actually tracked
-                heroDeathEvent = {'killerPlayerId': None , 'killerUnitIndex': None} # sadly, we don't know who killed it
-                heroList[unitTag].deathList[eventTime] = heroDeathEvent # and this is actually the respawn time, not death time
-                heroList[unitTag].deathCount += 1
-
-
-
 
 def find_hero_key_from_tag(heroList=None, tag=None):
     if len(heroList) == 0 or not heroList:
@@ -205,8 +175,6 @@ def find_player_key_from_user_id(playerList=None, userId=None):
             if v.userId == userId:
                 return k
     return None
-
-
 
 def get_hero_death_from_tracker_events(e, heroList):
     """
