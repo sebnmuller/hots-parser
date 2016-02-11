@@ -118,5 +118,4 @@ NORMALUNIT = {'FootmanMinion': 0.25,
                'RangedMinion': 0.25
 }
 
-num_choices_to_level = {0: None, 1: 1, 2: 4, 3: 7, 4: 10, 5: 13, 6: 16, 7: 20}
 
