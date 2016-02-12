@@ -46,6 +46,12 @@ class Team():
         self.luxoriaTempleNorthPct = 0
         self.luxoriaTempleCenterPct = 0
         self.luxoriaTempleSouthPct = 0
+        self.luxoriaTempleNorthShots = [] # Shots per event for the team. The index is the event number.
+        self.luxoriaTempleCenterShots = [] # Shots per event for the team. The index is the event number.
+        self.luxoriaTempleSouthShots = []  # Shots per event for the team. The index is the event number.
+        self.luxoriaTempleNorthDmg = []
+        self.luxoriaTempleCenterDmg = []
+        self.luxoriaTempleSouthDmg = []
         self.watchTowersTaken = 0
         self.bossTaken = 0
         self.mercsTaken = 0
@@ -195,7 +201,6 @@ class HeroUnit(Unit):
         self.totalOutHeal = 0 # How much heal this hero did?
         self.totalSelfHeal = 0 # How much this hero healed himself?
         self.totalIncDamage = 0 # How much damage this hero received
-        self.totalIncHeal = 0 # How much heal this hero received
         self.totalSiegeDmg = 0
         self.totalStructureDmg = 0
         self.totalMinionDmg = 0
@@ -232,12 +237,14 @@ class HeroUnit(Unit):
         self.totalBuildingsKilledAsDragon = []
         self.totalUnitsKilledAsDragon = []
         self.levelEvents = []
-        self.totalOutDamage = self.getTotalDamage()
+        self.totalOutDamage = self.get_total_damage()
         self.coinsTurnedIn = 0
         self.coinsCollected = 0
         self.coinsEffectiveness = 0
+        #self.killCount
 
-    def getTotalDamage(self):
+
+    def get_total_damage(self):
         return self.totalSiegeDmg + self.totalStructureDmg + self.totalMinionDmg + self.totalHeroDmg + self.totalCreepDmg
 
     def __str__(self):
