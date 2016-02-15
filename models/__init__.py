@@ -60,6 +60,8 @@ class Team():
         self.totalPlantsSummoned = 0
         self.totalPlantsDuration = 0
         self.plantDuration = []
+        self.planPotDuration = []
+        self.totalPlantPotDuration = 0
         self.totalUnitsKilledByPlants = []
         self.totalBuildingsKilledByPlants = []
         self.totalBuildingsKilledDuringPlant = []
