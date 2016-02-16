@@ -18,6 +18,9 @@ class Team():
         self.totalStructureXP = 0
         self.totalHeroXP = 0
         self.totalTrickleXP = 0
+        self.mapStats = {}
+
+
         self.wastedSoulGems = 0 # Totan number of gems no one took in Tomb of the Spider Queen map
         self.pickedSoulGems = 0
         self.summonedSpiderBosses = 0
@@ -42,6 +45,8 @@ class Team():
         self.luxoriaTempleCenterCaptured = 0
         self.luxoriaTempleSouthCapturedSeconds = 0
         self.luxoriaTempleSouthCaptured = 0
+        self.luxoriaTempleDmg = []
+        self.luxoriaTempleShots = []
         self.luxoriaTemplesPct = 0
         self.luxoriaTempleNorthPct = 0
         self.luxoriaTempleCenterPct = 0
@@ -60,6 +65,8 @@ class Team():
         self.totalPlantsSummoned = 0
         self.totalPlantsDuration = 0
         self.plantDuration = []
+        self.planPotDuration = []
+        self.totalPlantPotDuration = 0
         self.totalUnitsKilledByPlants = []
         self.totalBuildingsKilledByPlants = []
         self.totalBuildingsKilledDuringPlant = []
@@ -172,12 +179,13 @@ class HeroUnit(Unit):
         self.pickedTalents = [] # list of dicts
 
             # if a new hero unit is born
-        if e['_event'] == 'NNet.Replay.Tracker.SUnitBornEvent' and e['m_unitTypeName'].startswith('Hero'):
+        if e['_event'] == 'NNet.Replay.Tracker.SUnitBornEvent':
             playerId = e['m_upkeepPlayerId'] - 1
 
             self.playerId = playerId
             self.name = players[playerId].hero
             self.team = players[playerId].team
+            self.id = players[playerId].id
             self.userId = e['m_upkeepPlayerId'] - 1
             self.internalName = e['m_unitTypeName'][4:]
             self.unitTagIndex = e['m_unitTagIndex']
@@ -237,7 +245,7 @@ class HeroUnit(Unit):
         self.totalBuildingsKilledAsDragon = []
         self.totalUnitsKilledAsDragon = []
         self.levelEvents = []
-        self.totalOutDamage = self.get_total_damage()
+        self.totalOutDmg = 0
         self.coinsTurnedIn = 0
         self.coinsCollected = 0
         self.coinsEffectiveness = 0
