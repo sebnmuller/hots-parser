@@ -22,8 +22,12 @@ def save_to_db(replayData, path):
         print "=== MAP: %s (%s by %s) ===" % (replayData.replayInfo.mapName, replayData.replayInfo.mapSize['x'],  replayData.replayInfo.mapSize['y'])
         mapName = replayData.replayInfo.mapName
         print "Duration: %s secs (%s gl)" % (replayData.replayInfo.duration_in_secs(), replayData.replayInfo.gameLoops)
+        print "TEAMS INFORMATION ____________________________________"
         for team in replayData.teams:
             print "Team %s reached level %s (%s)" % (team.id, team.level, 'Winner' if team.isWinner else 'Loser')
+            for metric, value in team.__dict__.iteritems():
+                print "%s: %s" % (metric, value)
+        print "\n\nHEROES INFORMATION ___________________________________"
         for hero in replayData.heroList:
             print "[%s] Hero: %s (%s) played by %s " % ("Human" if replayData.heroList[hero].isHuman else "AI", replayData.heroList[hero].name, replayData.heroList[hero].playerId, replayData.players[replayData.heroList[hero].playerId].name)
 

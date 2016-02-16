@@ -172,7 +172,7 @@ def find_player_key_from_user_id(playerList=None, userId=None):
         return None
     else:
         for k, v in playerList.iteritems():
-            if v.userId == userId:
+            if v.id == userId:
                 return k
     return None
 

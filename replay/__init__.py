@@ -6,7 +6,7 @@ from hashlib import sha256
 
 
 
-class Replay():
+class Replay:
 
     EVENT_FILES = {
         'replay.tracker.events': 'decode_replay_tracker_events',
@@ -46,6 +46,7 @@ class Replay():
         details = self.protocol.decode_replay_details(contents)
         self.replayInfo = HeroReplay(details)
         self.players = {}
+        totalPlayers = 0
         totalHumans = 0
         for player in details['m_playerList']:
             p = Player(player)
@@ -54,7 +55,9 @@ class Replay():
                 totalHumans += 1
             else:
                 p.userId = -1
-            self.players[player['m_workingSetSlotId']] = p
+            self.players[totalPlayers] = p
+
+            totalPlayers += 1
 
     def process_replay_initdata(self):
         #return 0
@@ -297,7 +300,7 @@ class Replay():
                                     punisher_y = positions[get_seconds_from_int_gameloop(targetDiedAt)][1]
                                     # Y coord of dragon when unit died
                                     distance = calculate_distance(targetDiedX, targetDiedY, punisher_x, punisher_y)
-                                    self.unitsInGame[unit].distanceFromKiller = distance_from_punisher
+                                    self.unitsInGame[unit].distanceFromKiller = distance
                                     if distance > 0:
                                         punisher_efectiveness += 10/distance * self.unitsInGame[unit].get_strength()
                                         # that 10 is just a made up number LOL
@@ -690,6 +693,7 @@ class Replay():
         """
         This function process the events of the type NNet.Replay.Tracker.SUnitBornEvent
         """
+
         if event['_event'] != 'NNet.Replay.Tracker.SUnitBornEvent':
             return None
 
@@ -719,79 +723,85 @@ class Replay():
                 name = instance['m_name']
                 if name == 'Takedowns':
                     for hero in xrange(0,10): #There are 15 slots declared, maybe the other 5 are spectators?
-                        self.heroList[hero].takedowns = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].takedowns = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'SoloKill':
                     for hero in xrange(0,10):
-                        self.heroList[hero].soloKills = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].soloKills = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'Assists':
                     for hero in xrange(0,10):
-                        self.heroList[hero].assists = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].assists = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'ExperienceContribution':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalXP = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalXP = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'Healing':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalOutHeal = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalOutHeal = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'SiegeDamage':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalSiegeDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalSiegeDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalSiegeDmg
                 elif name == 'StructureDamage':
                     for hero in xrange(0,10): #Get ratios xp/dmg
-                        self.heroList[hero].totalStructureDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalStructureDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalStructureDmg
                 elif name == 'MinionDamage':
                     for hero in xrange(0,10): #Get ratios xp/dmg
-                        self.heroList[hero].totalMinionDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalMinionDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalMinionDmg
                 elif name == 'HeroDamage':
                     for hero in xrange(0,10): #Get ratios xp/dmg
-                        self.heroList[hero].totalHeroDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalHeroDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalHeroDmg
                 elif name == 'MercCampCaptures':
                     for hero in xrange(0,10): #Get ratios xp/dmg
-                        self.heroList[hero].capturedMercCamps = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].capturedMercCamps = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'WatchTowerCaptures':
                     for hero in xrange(0,10):
-                        self.heroList[hero].capturedBeaconTowers = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].capturedBeaconTowers = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'SelfHealing':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalSelfHeal = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalSelfHeal = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'TimeCCdEnemyHeroes':
                     for hero in xrange(0,10):
-                        self.heroList[hero].secondsCCOnEnemies = int(instance['m_values'][hero][0]['m_value'])/4096
+                        self.heroList[hero].secondsCCOnEnemies = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])/4096
                 elif name == 'CreepDamage':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalCreepDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalCreepDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalCreepDmg
                 elif name == 'SummonDamage':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalSummonDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalSummonDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].totalOutDmg += self.heroList[hero].totalSummonDmg
                 elif name == 'DamageTaken':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalIncDamage = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalIncDamage = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'GemsTurnedIn':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalGemsTurnedIn = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalGemsTurnedIn = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'RavenTributesCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].capturedTributes = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].capturedTributes = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DragonShrinesCaptured':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalShrinesCaptured = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalShrinesCaptured = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DamageDoneToImmortal':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalImmortalDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalImmortalDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'GardensSeedsCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].gardensSeedsCollected = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].gardensSeedsCollected = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DamageDoneToShrineMinions':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totalShrineMinionDmg = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totalShrineMinionDmg = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'TimeInTemple':
                     for hero in xrange(0,10):
-                        self.heroList[hero].totaltimeInTemples = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].totaltimeInTemples = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'BlackheartDoubloonsCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].coinsCollected = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].coinsCollected = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'BlackheartDoubloonsTurnedIn':
                     for hero in xrange(0,10):
-                        self.heroList[hero].coinsTurnedIn = int(instance['m_values'][hero][0]['m_value'])
+                        self.heroList[hero].coinsTurnedIn = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
 
     def NNet_Replay_Tracker_SStatGameEvent(self, event):
         eventName = event['m_eventName']
@@ -862,8 +872,8 @@ class Replay():
             self.process_immortal_defeated(event)
 
         elif eventName == 'SkyTempleActivated':
-            pass
-            # self.process_sky_temple_activated(event)
+            #pass
+            self.process_sky_temple_activated(event)
 
         elif eventName == 'RavenCurseActivated':
             self.process_raven_curse_activated(event)
@@ -875,8 +885,8 @@ class Replay():
             pass
 
         elif eventName == 'SkyTempleShotsFired':
-            pass
-            #self.process_temple_shots_fired(event)
+            #pass
+            self.process_temple_shots_fired(event)
 
         elif eventName == 'TownStructureInit':
             pass
@@ -895,34 +905,25 @@ class Replay():
 
         for data in event['m_fixedData']:
             if data['m_key'] == 'SkyTempleShotsDamage':
-                shotsDamage = round(float(data['m_value'])/4096,4)
-        if temple == 1:
-            self.teams[team].luxoriaTempleNorthShots[eventNumber] += 1
-            self.teams[team].luxoriaTempleNorthDmg[eventNumber] += shotsDamage
-        elif temple == 2:
-            self.teams[team].luxoriaTempleCenterShots[eventNumber] += 1
-            self.teams[team].luxoriaTempleCenterDmg[eventNumber] += shotsDamage
-        elif temple == 3:
-            self.teams[team].luxoriaTempleSouthShots[eventNumber] += 1
-            self.teams[team].luxoriaTempleSouthDmg[eventNumber] += shotsDamage
+                shotsDamage = round(float(data['m_value'])/4096)
+
+            self.teams[team].luxoriaTempleDmg[eventNumber] += shotsDamage
+            self.teams[team].luxoriaTempleShots[eventNumber] += 1
+
 
     def process_sky_temple_activated(self, event):
         for data in event['m_intData']:
             if data['m_key'] == 'TempleID':
                 temple = data['m_value']
             elif data['m_key'] == 'Event':
-                event = int(data['m_value'])
+                eventNumber = int(data['m_value'])
         #initialize variables
+
         for team in xrange(0, len(self.teams)):
-            if temple == 1:
-                self.teams[team].luxoriaTempleNorthDmg.append(0)
-                self.teams[team].luxoriaTempleNorthShots.append(0)
-            elif temple == 2:
-                self.teams[team].luxoriaTempleCenterDmg.append(0)
-                self.teams[team].luxoriaTempleCenterShots.append(0)
-            elif temple == 3:
-                self.teams[team].luxoriaTempleSouthDmg.append(0)
-                self.teams[team].luxoriaTempleSouthShots.append(0)
+            if len(self.teams[team].luxoriaTempleDmg) < eventNumber:
+                self.teams[team].luxoriaTempleDmg.append(0)
+                self.teams[team].luxoriaTempleShots.append(0)
+
 
     def process_ghost_ship_captured(self, event):
         eventData = {}
