@@ -33,6 +33,14 @@ def get_ability_tag(e):
 def calculate_distance(x1, y1, x2, y2):
     return sqrt(pow(x1-x2,2)+pow(y1-y2,2))
 
+def calculate_weighted_average(values, weights):
+    if len(values) > len(weights) or len(values) == 0:
+        return None
+    result = 0
+    for v in xrange(0, len(values)):
+        result += values[v]*weights[v]
+    return result
+
 def get_unit_owners(e, unitsInGame, totalDuration):
     """
     Get the owner of the unit and the time the unit was owned
@@ -81,57 +89,72 @@ def get_unit_owners(e, unitsInGame, totalDuration):
                 ownerTuple = (owner, get_seconds_from_event_gameloop(e), 0)
                 unit.ownerList.append(list(ownerTuple))
 
-def get_position_by_second(unit, total_time):
-    pos = OrderedDict()
+def get_position_by_second(unit, total_time, start=None, end=None):
+    pos = {}
     iter = 0
     dist_iter = 1
-    # try:
+    start_game = get_seconds_from_int_gameloop(unit.bornAtGameLoops)
+    end_game = total_time if unit.is_hero() else unit.get_death_time(total_time)
+    positions = sorted(unit.positions)
+    #try:
+    if start > get_seconds_from_int_gameloop(unit.bornAtGameLoops):
+        if start < end:
+            start_game = start
+    if end < unit.get_death_time(total_time):
+        if end > start:
+            end_game = end
 
-    for gl in xrange(unit.bornAtGameLoops, unit.get_death_time(total_time)*16 + 1):
-        if gl in unit.positions.keys():
+    for second in xrange(start_game, end_game + 1):
+        if second in positions:
 
-            if get_seconds_from_int_gameloop(gl) not in pos.keys():
+            if second not in pos:
                 # If the info for this second is not stored yet
-                pos[get_seconds_from_int_gameloop(gl)] = unit.positions[gl]
+                pos[second] = unit.positions[second]
                 iter += 1
                 dist_iter = 1
 
         # if we don't have information for the current second, we need to estimate it
         else:
-            total_positions = len(unit.positions)
-            if get_seconds_from_int_gameloop(gl) not in pos.keys() and iter < total_positions:
-                x_1 = unit.positions[unit.positions.keys()[iter-1]][0]
-                y_1 = unit.positions[unit.positions.keys()[iter-1]][1]
-                # print unit.unit_tag_index()
-                # print unit.unit_tag_recycle()
-                # print unit.positions.keys()
-                # print "iter %s" % iter
-                x_2 = unit.positions[unit.positions.keys()[iter]][0]
-                y_2 = unit.positions[unit.positions.keys()[iter]][1]
-                elapsed_seconds = get_seconds_from_int_gameloop(unit.positions.keys()[iter] - unit.positions.keys()[iter-1])
-                distance = hypot(x_2-x_1, y_2-y_1)
-                if distance > 0:
-                    alpha = degrees(asin(abs(y_2 - y_1)/distance))
-                else:
-                    alpha = 0
-                beta = 180 - 90 - alpha
-                distance_per_second = distance / elapsed_seconds
-                travel_distance = distance_per_second * dist_iter
-                distance_x = round(travel_distance * sin(radians(beta)))
-                distance_y = round(travel_distance * sin(radians(alpha)))
-                if y_1 < y_2:
-                    multi_y = 1
-                else:
-                    multi_y = -1
-                if x_1 < x_2:
-                    multi_x = 1
-                else:
-                    multi_x = -1
-                new_x = x_1 + distance_x * multi_x
-                new_y = y_1 + distance_y * multi_y
+            total_positions = len(positions)
+            # estimate the last known position for the unit before this second
+            iter_sec = max([val for val in positions if val < second])
+            iter = positions.index(iter_sec)
+            # for p in positions:
+            #     if p != iter_sec:
+            #         iter += 1
+            #     else:
+            #         break
+            if second not in pos and iter < total_positions - 1:
+                x_1 = unit.positions[positions[iter]][0]
+                y_1 = unit.positions[positions[iter]][1]
+                x_2 = unit.positions[positions[iter+1]][0]
+                y_2 = unit.positions[positions[iter+1]][1]
 
-                pos[get_seconds_from_int_gameloop(gl)] = [new_x, new_y]
-                dist_iter += 1
+                elapsed_seconds = positions[iter+1] - positions[iter]
+                if elapsed_seconds > 0:
+                    distance = hypot(x_2-x_1, y_2-y_1)
+                    if distance > 0:
+                        alpha = degrees(asin(abs(y_2 - y_1)/distance))
+                    else:
+                        alpha = 0
+                    beta = 180 - 90 - alpha
+                    distance_per_second = distance / elapsed_seconds
+                    travel_distance = distance_per_second * dist_iter
+                    distance_x = round(travel_distance * sin(radians(beta)))
+                    distance_y = round(travel_distance * sin(radians(alpha)))
+                    if y_1 < y_2:
+                        multi_y = 1
+                    else:
+                        multi_y = -1
+                    if x_1 < x_2:
+                        multi_x = 1
+                    else:
+                        multi_x = -1
+                    new_x = x_1 + distance_x * multi_x
+                    new_y = y_1 + distance_y * multi_y
+
+                    pos[second] = [new_x, new_y]
+                    dist_iter += 1
     # except Exception, e:
     #     print "error here!!! %s" % e
     return pos
