@@ -195,7 +195,8 @@ class HeroUnit(Unit):
 
         # Metrics
         self.deathCount = 0
-        self.deaths = [] # At what point in game (in seconds) the hero died and who killed them
+        self.deaths = [] # At what point in game (in seconds) the hero died, who killed them and was solo death?
+        self.soloDeathsCount = 0# how many times this hero died while away from team mates
         self.secondsDead = 0 # How many seconds the hero was waiting to resurrect
         self.killCountNeutral = 0 # How many neutral npc units this hero killed?
         self.killCountBuildings = 0 # How many buildings this hero destroyed?
@@ -244,12 +245,13 @@ class HeroUnit(Unit):
         self.totalShrinesCaptured = 0
         self.totalBuildingsKilledAsDragon = []
         self.totalUnitsKilledAsDragon = []
+        self.dragonEffectiveness = []
+        self.dragonCaptureTimes = []
         self.levelEvents = []
         self.totalOutDmg = 0
         self.coinsTurnedIn = 0
         self.coinsCollected = 0
         self.coinsEffectiveness = 0
-        #self.killCount
 
 
     def get_total_damage(self):
@@ -359,7 +361,7 @@ class GameUnit(Unit):
         self.killerPlayerId = None
         self.ownerList = list() # owner, when, duration (None = forever)
         self.clickerList = OrderedDict() # key = gameloop , value = player id
-        self.heroData = None
+        self.isHero = False
         self.unitsKilled = 0
         self.buildingsKilled = 0
         self.unitTagIndex = e['m_unitTagIndex']
@@ -371,10 +373,10 @@ class GameUnit(Unit):
         self.team = e['m_upkeepPlayerId'] - 11 if e['m_upkeepPlayerId'] > 10 else e['m_upkeepPlayerId'] - 1 # Team this unit belongs to, or Hero controlling it at born time (if it's <= 10)
         self.bornAtX = e['m_x']
         self.bornAtY = e['m_y']
-        self.positions = OrderedDict() # key seconds, val = dict {'x','y'}
+        self.positions = {} # key seconds, val = dict {'x','y'}
         self.distanceFromKiller = -1;
         if not self.is_plant_vehicle():
-            self.positions[self.bornAtGameLoops] = [self.bornAtX, self.bornAtY]
+            self.positions[get_seconds_from_int_gameloop(self.bornAtGameLoops)] = [self.bornAtX, self.bornAtY]
 
 
     def is_map_resource(self):
@@ -448,6 +450,9 @@ class GameUnit(Unit):
 
     def is_punisher(self):
         return self.internalName in PUNISHER_UNIT
+
+    def is_hero(self):
+        return self.isHero
 
     def get_strength(self):
         if self.is_hired_mercenary():
