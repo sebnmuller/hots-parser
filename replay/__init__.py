@@ -143,6 +143,58 @@ class Replay:
                 self.heroList[playerId].clickedTributes += 1
 
 
+    def calculate_solo_deaths(self):
+        """
+        Calculates when a hero is dies away from its team mates
+        :return:
+        """
+        weights = [0.10, 0.15, 0.20, 0.40, 0.10, 0.05]
+        for hero in self.heroList:
+            if self.heroList[hero].deathCount > 0:
+                #kill = {'killers': killers, 'x': x, 'y': y, 'gameloops': gl, 'seconds': get_seconds_from_int_gameloop(gl)}
+                team = self.heroList[hero].team
+                # the idea with weights is that the most important distance is the one between the victim and the
+                # allies at the exact moment the victim died (the 0.4)
+
+                for death in self.heroList[hero].deaths:
+                    #print "\nVictim %s" % self.heroList[hero].name
+                    away_allies = 0 # How many allies were far away when the hero died, ideally should be 0
+                    totalKillers = len(death['killers'])
+                    seconds =  death['seconds']
+                    victim_x = death['x']
+                    victim_y = death['y']
+                    allies = [player for player in self.teams[team].memberList if hero <> player]
+                    allied_dist = {}
+                    w_dist = None
+                    for allied in allies:
+                        allied_dist[allied] = []
+                        alliedTag = self.heroList[allied].unitTag
+                        duration = self.replayInfo.duration_in_secs()
+                        # just calculate the position for the allied in a small vicinity of seconds
+                        positions = get_position_by_second(self.unitsInGame[alliedTag],
+                                                           duration,
+                                                           seconds-15,
+                                                           seconds+15)
+                        # get the positions for the allied player in a window of 6 seconds
+                        for s in xrange(seconds-3, seconds+3):
+                            if positions.get(s):
+                                allied_x = positions[s][0]
+                                allied_y = positions[s][1]
+                                allied_dist[allied].append(calculate_distance(victim_x, victim_y, allied_x, allied_y))
+                        w_dist = calculate_weighted_average(allied_dist[allied], weights)
+                        if w_dist >= 10:
+                            away_allies += 1
+                    if away_allies >= 3:
+                        self.heroList[hero].soloDeathsCount += 1
+                        death['soloDeath'] = True
+                    else:
+                        death['soloDeath'] = False
+
+
+
+
+
+
     def process_cursed_hollow(self):
         return None
          # for capturedUnitTag in self.unitsInGame.keys():
@@ -204,8 +256,6 @@ class Replay:
                     diedAt = self.unitsInGame[unitTag].diedAtGameLoops if \
                         self.unitsInGame[unitTag].diedAtGameLoops is not None \
                         else self.replayInfo.gameLoops
-                    # TODO calculate unitEffectivity by calculating dead units around the spider
-                    # (unitValue * distance to spider when died)
                     if targetDiedAt in xrange(bornAt, diedAt + 1) and \
                                     targetDiedY in xrange(spiderY - 20, spiderY + 21) and \
                                     self.unitsInGame[unit].team != team:
@@ -245,7 +295,7 @@ class Replay:
                 if self.heroList[hero].coinsTurnedIn > 0 else 0
         for unitTag in self.unitsInGame.keys():
             unit = self.unitsInGame[unitTag]
-            if unit.internalName == 'GhostShipBeacon':
+            if unit.internalName == GHOST_SHIP:
                 for team, when, duration in unit.ownerList:
                     if team in xrange(0, len(self.teams)):
                         effectiveness = 0
@@ -273,7 +323,6 @@ class Replay:
     def process_infernal_shrines(self):
         for unitTag in self.unitsInGame.keys():
             if self.unitsInGame[unitTag].is_punisher():
-                #todo order punishers by spawn time... or identify punisher type by spell casted
                 created_at = self.unitsInGame[unitTag].bornAt
                 died_at = self.unitsInGame[unitTag].diedAt if self.unitsInGame[unitTag].diedAt > 0 \
                     else self.replayInfo.duration_in_secs()
@@ -296,9 +345,9 @@ class Replay:
                                     targetDiedY = self.unitsInGame[unit].diedAtY # Y coord when unit died
                                     targetDiedX = self.unitsInGame[unit].diedAtX # X coord when unit died
                                     punisher_x = positions[get_seconds_from_int_gameloop(targetDiedAt)][0]
-                                    # X coord of dragon when unit died
+                                    # X coord of punisher when unit died
                                     punisher_y = positions[get_seconds_from_int_gameloop(targetDiedAt)][1]
-                                    # Y coord of dragon when unit died
+                                    # Y coord of punisher when unit died
                                     distance = calculate_distance(targetDiedX, targetDiedY, punisher_x, punisher_y)
                                     self.unitsInGame[unit].distanceFromKiller = distance
                                     if distance > 0:
@@ -308,8 +357,8 @@ class Replay:
                                         buildings_killed_during += 1
                                     else:
                                         units_killed_during += 1
-                except Exception:
-                    print "error"
+                except Exception, e:
+                    print e
                 self.teams[team].totalBuildingsKilledDuringPunisher.append(buildings_killed_during)
                 self.teams[team].totalUnitsKilledDuringPunisher.append(units_killed_during)
                 self.teams[team].punisherEfectiveness.append(punisher_efectiveness)
@@ -400,6 +449,8 @@ class Replay:
                 self.heroList[controller_of_dragon].totalDragonsControlled += 1
                 self.heroList[controller_of_dragon].totalUnitsKilledAsDragon.append(units_killed_during)
                 self.heroList[controller_of_dragon].totalBuildingsKilledAsDragon.append(buildings_killed_during)
+                self.heroList[controller_of_dragon].dragonEffectiveness.append(round(dragon_effectiveness,2))
+                self.heroList[controller_of_dragon].dragonCaptureTimes.append(get_seconds_from_int_gameloop(dragon_unit.bornAtGameLoops))
 
 
     def process_garden_of_terror(self):
@@ -610,6 +661,7 @@ class Replay:
 
     def process_generic_events(self):
         self.process_regen_globes_stats()
+        self.calculate_solo_deaths()
 
     def get_unit_destruction(self, e):
         """
@@ -698,11 +750,13 @@ class Replay:
             return None
 
         # Populate Heroes
+        isHero = False
         # TODO change this to use the new events
         if event['m_unitTypeName'].startswith('Hero') and event['m_unitTypeName'] not in \
                 ('ChenFire', 'ChenStormConduit', 'ChenEarthConduit', 'ChenFireConduit'):
             hero = HeroUnit(event, self.players)
             if hero:
+                isHero = True
                 self.heroList[hero.playerId] = hero
                 # create/update team
                 if hero.playerId not in self.teams[hero.team].memberList:
@@ -713,6 +767,7 @@ class Replay:
         unit = GameUnit(event)
         if unit:
             self.unitsInGame[unit.unitTag] = unit
+            self.unitsInGame[unit.unitTag].isHero = isHero
             self.temp_indexes[unit.unitTagIndex] = unit.unitTag
 
     def NNet_Replay_Tracker_SScoreResultEvent(self, event):
@@ -1234,6 +1289,7 @@ class Replay:
         if ability:
             # update hero stat
             playerId = find_player_key_from_user_id(self.players, ability.userId)
+
             self.heroList[playerId].castedAbilities[ability.castedAtGameLoops] = ability
 
     def NNet_Game_SCmdUpdateTargetPointEvent(self, event):
@@ -1251,7 +1307,7 @@ class Replay:
             y = event['m_items'][i + 2] #* 4
             unitTag = self.temp_indexes.get(unitIndex,None)
             if unitTag:
-                self.unitsInGame[unitTag].positions[event['_gameloop']] = [x, y]
+                self.unitsInGame[unitTag].positions[get_seconds_from_int_gameloop(event['_gameloop'])] = [x, y]
 
     def NNet_Game_SCommandManagerStateEvent(self, event):
         if event['_event'] != 'NNet.Game.SCommandManagerStateEvent':
@@ -1280,6 +1336,9 @@ class Replay:
                         ability = TargetUnitAbility(self.utue.get(event['_gameloop']))
                         if ability:
                             self.heroList[playerId].castedAbilities[ability.castedAtGameLoops] = ability
+                            seconds = get_seconds_from_int_gameloop(ability.castedAtGameLoops)
+                            self.unitsInGame[ability.targetUnitTag].positions[seconds] = [int(ability.x),
+                                                                                          int(ability.y)]
 
                 else:
                 # This was not a targeted skill
@@ -1291,4 +1350,4 @@ class Replay:
                         if ability:
                             self.heroList[playerId].castedAbilities[ability.castedAtGameLoops] = ability
         except Exception, e:
-            print abilities
+            print e

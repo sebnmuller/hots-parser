@@ -200,6 +200,7 @@ def dump_data(entities=None, replay_data=None, file_path=None):
         dump_heroes(data=replay_data, output_path=file_path)
         dump_teams(data=replay_data, output_path=file_path)
         dump_units(data=replay_data, output_path=file_path)
+        dump_players(data=replay_data, output_path=file_path)
 
     if entities == 'heroes':
         dump_heroes(data=replay_data, output_path=file_path)
@@ -209,6 +210,9 @@ def dump_data(entities=None, replay_data=None, file_path=None):
 
     if entities == 'units':
         dump_units(data=replay_data, output_path=file_path)
+
+    if entities == 'players':
+        dump_players(data=replay_data, output_path=file_path)
 
 
 def dump_heroes(data=None, output_path=None):
@@ -239,9 +243,17 @@ def dump_teams(data=None, output_path=None):
             dump = "[" + jsonpickle.encode(data.teams[0])
             f.write(dump)
 
-            dump = "," + jsonpickle.encode(data.teams[0]) + "]"
+            dump = "," + jsonpickle.encode(data.teams[1]) + "]"
             f.write(dump)
 
+def dump_players(data=None, output_path=None):
+    if not data or not output_path:
+        return None
+    file_path = output_path + "players.json"
+    print "dumping player data into %s" % (file_path)
+    with file(file_path, 'w') as f:
+            dump = jsonpickle.encode(data.players)
+            f.write(dump)
 
 
 
@@ -251,7 +263,8 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--dump-heroes',  action='store_true', default=False, help='Indicates you want to dump hero data')
     parser.add_argument('-t', '--dump-teams', action='store_true', default=False, help='Indicates you want to dump teams data')
     parser.add_argument('-u', '--dump-units',action='store_true', default=False, help='Indicates you want to dump units data')
-    parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units')
+    parser.add_argument('-p', '--dump-players',action='store_true', default=False, help='Indicates you want to dump player data')
+    parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units --dump-players')
     parser.add_argument('replay_path', help='Path to the .StormReplay file to process')
     args = parser.parse_args()
 
@@ -273,12 +286,15 @@ if __name__ == "__main__":
 
     if (args.dump_all):
         dump_data(entities='all', file_path=output_path, replay_data=replayData)
-    elif args.dump_heroes or args.dump_teams or args.dump_units:
+    elif args.dump_heroes or args.dump_teams or args.dump_units or args.dump_players:
         if (args.dump_heroes):
             dump_data(entities='heroes', file_path=output_path, replay_data=replayData)
         if (args.dump_teams):
             dump_data(entities='teams', file_path=output_path, replay_data=replayData)
         if (args.dump_units):
             dump_data(entities='units', file_path=output_path, replay_data=replayData)
+        if (args.dump_players):
+            dump_data(entities='players', file_path=output_path, replay_data=replayData)
     else:
+        print 'saving to db'
         save_to_db(replayData, args.replay_path)
