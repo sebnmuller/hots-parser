@@ -211,8 +211,8 @@ def dump_data(entities=None, replay_data=None, file_path=None):
     if entities == 'units':
         dump_units(data=replay_data, output_path=file_path)
 
-    if entity == 'players':
-        dump_units(data=replay_data, output_path=file_path)
+    if entities == 'players':
+        dump_players(data=replay_data, output_path=file_path)
 
 
 def dump_heroes(data=None, output_path=None):
@@ -286,12 +286,15 @@ if __name__ == "__main__":
 
     if (args.dump_all):
         dump_data(entities='all', file_path=output_path, replay_data=replayData)
-    elif args.dump_heroes or args.dump_teams or args.dump_units:
+    elif args.dump_heroes or args.dump_teams or args.dump_units or args.dump_players:
         if (args.dump_heroes):
             dump_data(entities='heroes', file_path=output_path, replay_data=replayData)
         if (args.dump_teams):
             dump_data(entities='teams', file_path=output_path, replay_data=replayData)
         if (args.dump_units):
             dump_data(entities='units', file_path=output_path, replay_data=replayData)
+        if (args.dump_players):
+            dump_data(entities='players', file_path=output_path, replay_data=replayData)
     else:
+        print 'saving to db'
         save_to_db(replayData, args.replay_path)
