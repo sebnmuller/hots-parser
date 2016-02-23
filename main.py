@@ -243,7 +243,7 @@ def dump_teams(data=None, output_path=None):
             dump = "[" + jsonpickle.encode(data.teams[0])
             f.write(dump)
 
-            dump = "," + jsonpickle.encode(data.teams[0]) + "]"
+            dump = "," + jsonpickle.encode(data.teams[1]) + "]"
             f.write(dump)
 
 def dump_players(data=None, output_path=None):
