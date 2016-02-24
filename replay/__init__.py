@@ -14,6 +14,7 @@ class Replay:
     }
 
     replayInfo = None
+    game_events = {}
     unitsInGame = {}
     temp_indexes = {} # key = UnitTagIndex, UnitTag
     timeline = {} # key = when (in seconds), value = event {} key = team - value = description
@@ -40,6 +41,16 @@ class Replay:
         _id = '_'.join(_id)
         id = "%s_%s" % (self.replayInfo.randomVal,_id)
         return sha256(id).hexdigest()
+
+    def process_replay_events(self):
+        contents = self.replayFile.read_file('replay.game.events')
+        events = self.protocol.decode_replay_game_events(contents)
+        for event in events:
+            print event
+
+        # contents = archive.read_file('replay.game.events')
+        # for event in protocol.decode_replay_game_events(contents):
+        #     logger.log(sys.stdout, event)
 
     def process_replay_details(self):
         contents = self.replayFile.read_file('replay.details')

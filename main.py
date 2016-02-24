@@ -4,11 +4,14 @@ import argparse
 from heroprotocol import protocol40431 as protocol
 from heroprotocol.mpyq import mpyq
 from os import path
-from parser import processEvents
+from parser import processEvents, processTimestampedEvents
 import json
 import datetime
 import jsonpickle
 
+def save_to_es(replayData):
+    print 'herro again'
+    print replayData.game_events
 
 
 def save_to_db(replayData, path):
@@ -266,13 +269,21 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--dump-players',action='store_true', default=False, help='Indicates you want to dump player data')
     parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units --dump-players')
     parser.add_argument('replay_path', help='Path to the .StormReplay file to process')
+    parser.add_argument('-g', '--game-events', default=False, help='Process timestamped game events')
     args = parser.parse_args()
 
     print "Processing: %s" % (args.replay_path)
 
     replayData = None
     replay = mpyq.MPQArchive(args.replay_path)
-    replayData = processEvents(protocol, replay)
+    if args.game_events:
+        replayData = processTimestampedEvents(protocol, replay)
+        print 'herro'
+        save_to_es(replayData)
+        exit(1)
+    else:
+        replayData = processEvents(protocol, replay)
+
 
     if (args.output_dir):
         if not path.exists(args.output_dir): # check if the provided path exists

@@ -26,3 +26,9 @@ def processEvents(protocol=None, replayFile=None):
 
 
     return replay_data
+
+def processTimestampedEvents(protocol, replayFile):
+    replay_data = Replay(protocol, replayFile)
+    replay_data.process_replay_events()
+
+    return replay_data

@@ -1,4 +1,5 @@
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 from elasticsearch_dsl import Search, Q
 
 
@@ -39,18 +40,39 @@ class ES:
                 exit(1)
 
     def index_replay(self, document, replay_id):
+        # TODO: replays should have their own type, index per replay?
+        # TODO: does the python API differentiate betwen transport and node client?
+        # TODO: do we want to do bulk indexing of a queue of indexing actions?
         self.client.create(index=self.index, doc_type=self.type, id=replay_id, body={
             document
         })
 
-    def check_match(self, replay_id):
-        if self.client.indices.exists(index=self.index, type=self.type, id=replay_id):
-            return self.client.get(index=self.index, type=self.type, id=replay_id)
-        else:
-            return None
+    # Bulk indexing of replays received from a message queue
+    # Actions look like:
+    #  action = {
+    #     "_index": "index",
+    #     "_type": "type",
+    #     "_id": id,
+    #     "_source": {
+    #         "field":"value",
+    #         }
+    #  }
+    # TODO: define whether replays should include ALL events or each event is its own document
+    def bulk_index_replays(self, actions):
+        helpers.bulk(self.client, actions)
 
-    def check_player(self, player_id):
-        if self.client.indices.exists(index=self.index, type=self.type, id=player_id):
-            return self.client.get(index=self.index, type=self.type, id=player_id)
-        else:
-            return None
+
+def check_replay(self, replay_id):
+    # TODO: matches should have their own type, index per replay?
+    if self.client.indices.exists(index=self.index, type=self.type, id=replay_id):
+        return self.client.get(index=self.index, type=self.type, id=replay_id)
+    else:
+        return None
+
+
+def check_player(self, player_id):
+    # TODO: players should have their own index, (not each), what about types and cluster?
+    if self.client.indices.exists(index=self.index, type=self.type, id=player_id):
+        return self.client.get(index=self.index, type=self.type, id=player_id)
+    else:
+        return None
