@@ -117,44 +117,46 @@ def get_position_by_second(unit, total_time, start=None, end=None):
         else:
             total_positions = len(positions)
             # estimate the last known position for the unit before this second
-            iter_sec = max([val for val in positions if val < second])
-            iter = positions.index(iter_sec)
-            # for p in positions:
-            #     if p != iter_sec:
-            #         iter += 1
-            #     else:
-            #         break
-            if second not in pos and iter < total_positions - 1:
-                x_1 = unit.positions[positions[iter]][0]
-                y_1 = unit.positions[positions[iter]][1]
-                x_2 = unit.positions[positions[iter+1]][0]
-                y_2 = unit.positions[positions[iter+1]][1]
+            previousPos = [val for val in positions if val < second]
+            if len(previousPos) > 0:
+                iter_sec = max(previousPos)
+                iter = positions.index(iter_sec)
+                # for p in positions:
+                #     if p != iter_sec:
+                #         iter += 1
+                #     else:
+                #         break
+                if second not in pos and iter < total_positions - 1:
+                    x_1 = unit.positions[positions[iter]][0]
+                    y_1 = unit.positions[positions[iter]][1]
+                    x_2 = unit.positions[positions[iter+1]][0]
+                    y_2 = unit.positions[positions[iter+1]][1]
 
-                elapsed_seconds = positions[iter+1] - positions[iter]
-                if elapsed_seconds > 0:
-                    distance = hypot(x_2-x_1, y_2-y_1)
-                    if distance > 0:
-                        alpha = degrees(asin(abs(y_2 - y_1)/distance))
-                    else:
-                        alpha = 0
-                    beta = 180 - 90 - alpha
-                    distance_per_second = distance / elapsed_seconds
-                    travel_distance = distance_per_second * dist_iter
-                    distance_x = round(travel_distance * sin(radians(beta)))
-                    distance_y = round(travel_distance * sin(radians(alpha)))
-                    if y_1 < y_2:
-                        multi_y = 1
-                    else:
-                        multi_y = -1
-                    if x_1 < x_2:
-                        multi_x = 1
-                    else:
-                        multi_x = -1
-                    new_x = x_1 + distance_x * multi_x
-                    new_y = y_1 + distance_y * multi_y
+                    elapsed_seconds = positions[iter+1] - positions[iter]
+                    if elapsed_seconds > 0:
+                        distance = hypot(x_2-x_1, y_2-y_1)
+                        if distance > 0:
+                            alpha = degrees(asin(abs(y_2 - y_1)/distance))
+                        else:
+                            alpha = 0
+                        beta = 180 - 90 - alpha
+                        distance_per_second = distance / elapsed_seconds
+                        travel_distance = distance_per_second * dist_iter
+                        distance_x = round(travel_distance * sin(radians(beta)))
+                        distance_y = round(travel_distance * sin(radians(alpha)))
+                        if y_1 < y_2:
+                            multi_y = 1
+                        else:
+                            multi_y = -1
+                        if x_1 < x_2:
+                            multi_x = 1
+                        else:
+                            multi_x = -1
+                        new_x = x_1 + distance_x * multi_x
+                        new_y = y_1 + distance_y * multi_y
+                        pos[second] = [new_x, new_y]
+                        dist_iter += 1
 
-                    pos[second] = [new_x, new_y]
-                    dist_iter += 1
     # except Exception, e:
     #     print "error here!!! %s" % e
     return pos

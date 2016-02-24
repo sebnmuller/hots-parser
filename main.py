@@ -27,6 +27,8 @@ def save_to_db(replayData, path):
             print "Team %s reached level %s (%s)" % (team.id, team.level, 'Winner' if team.isWinner else 'Loser')
             for metric, value in team.__dict__.iteritems():
                 print "%s: %s" % (metric, value)
+            print sorted(team.army_strength)
+            print [value for (key, value) in sorted(team.army_strength.items())]
         print "\n\nHEROES INFORMATION ___________________________________"
         for hero in replayData.heroList:
             print "[%s] Hero: %s (%s) played by %s " % ("Human" if replayData.heroList[hero].isHuman else "AI", replayData.heroList[hero].name, replayData.heroList[hero].playerId, replayData.players[replayData.heroList[hero].playerId].name)
