@@ -678,7 +678,7 @@ class Replay:
             self.unitsInGame[deadUnitTag].gameLoopsAlive = self.unitsInGame[deadUnitTag].diedAtGameLoops - \
                                                            self.unitsInGame[deadUnitTag].bornAtGameLoops
             self.unitsInGame[deadUnitTag].killerPlayerId = e['m_killerPlayerId']
-            self.unitsInGame[deadUnitTag].positions[get_gameloops(e)] = [e['m_x'], e['m_y']]
+            self.unitsInGame[deadUnitTag].positions[get_seconds_from_event_gameloop(e)] = [e['m_x'], e['m_y']]
 
             if self.unitsInGame[deadUnitTag].is_plant_vehicle():
                 self.unitsInGame[deadUnitTag].ownerList[0][2] = self.unitsInGame[deadUnitTag].diedAt - \
@@ -699,37 +699,29 @@ class Replay:
         Calculate the relative army strength of the team, that's it the accumulated sum of
         strengths of each unit belonging to the team, each second.
         """
-        self.army_strength = [
-        [[t, 0] for t in xrange(1, self.replayInfo.duration_in_secs() + 1)],
-        [[t, 0] for t in xrange(1, self.replayInfo.duration_in_secs() + 1)]
-      ]
-
-
-        self.merc_strength = [
-        [[t, 0] for t in xrange(1, self.replayInfo.duration_in_secs() + 1)],
-        [[t, 0] for t in xrange(1, self.replayInfo.duration_in_secs() + 1)]
-      ]
 
         for unit in self.units_in_game():
-            if unit.team not in xrange(0,len(self.teams)) and \
-                    (
-                                    not unit.is_army_unit() or
-                                    not unit.is_hired_mercenary()
-                                    or not unit.is_advanced_unit()
-                    ):
-                continue
+            if unit.team in xrange(0,len(self.teams)) and (unit.is_army_unit() \
+                                                           or unit.is_hired_mercenary() \
+                                                           or unit.is_advanced_unit()):
+                end = unit.get_death_time(self.replayInfo.duration_in_secs())
+                for second in xrange(unit.bornAt, end + 1):
+                    try:
+                        if self.teams[unit.team].army_strength.get(second):
+                            self.teams[unit.team].army_strength[second] += unit.get_strength()
+                        else:
+                            self.teams[unit.team].army_strength[second] = unit.get_strength()
 
-        end = unit.get_death_time(self.replayInfo.duration_in_secs())
+                        if unit.is_mercenary():
+                            if self.teams[unit.team].merc_strength.get(second):
+                                self.teams[unit.team].merc_strength[second] += unit.get_strength()
+                            else:
+                                self.teams[unit.team].merc_strength[second] = unit.get_strength()
+                    except Exception, e:
+                      # for some cosmic reason some events are happening after the game is over D:
+                      print e.message
 
-        for second in xrange(unit.bornAt, end + 1):
-            try:
-                self.army_strength[unit.team][second][1] += unit.get_strength()
 
-                if unit.is_mercenary():
-                    self.merc_strength[unit.team][second][1] += unit.get_strength()
-            except IndexError:
-              # for some cosmic reason some events are happening after the game is over D:
-              pass
 
     def NNet_Replay_Tracker_SUpgradeEvent(self, event):
         """

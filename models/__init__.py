@@ -19,6 +19,8 @@ class Team():
         self.totalHeroXP = 0
         self.totalTrickleXP = 0
         self.mapStats = {}
+        self.army_strength = {}
+        self.merc_strength = {}
 
 
         self.wastedSoulGems = 0 # Totan number of gems no one took in Tomb of the Spider Queen map
