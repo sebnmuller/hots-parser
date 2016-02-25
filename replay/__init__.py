@@ -3,6 +3,7 @@ __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
 from models import *
 from hashlib import sha256
+import json
 
 
 
@@ -43,10 +44,25 @@ class Replay:
         return sha256(id).hexdigest()
 
     def process_replay_events(self):
-        contents = self.replayFile.read_file('replay.game.events')
-        events = self.protocol.decode_replay_game_events(contents)
+        events_contents = self.replayFile.read_file('replay.game.events')
+        events = self.protocol.decode_replay_game_events(events_contents)
+        details_contents = self.replayFile.read_file('replay.details')
+        details = self.protocol.decode_replay_details(details_contents)
+        self.replayInfo = HeroReplay(details)
+        start_time = details['m_timeUTC']
+        start_timestamp = self.replayInfo.startTime
         for event in events:
-            print event
+            # print 'start: '
+            # print start_time
+            # print start_timestamp
+            # print 'current: '
+            print win_timestamp_to_date(start_time + event['_gameloop'])
+            # print start_time + event['_gameloop']
+            # print event['_gameloop']
+            # print 'current: '
+            # print get_event_timestamp(start_time, event['_gameloop'])
+            # print get_seconds_from_int_gameloop(event['_gameloop'])
+            # print event
 
         # contents = archive.read_file('replay.game.events')
         # for event in protocol.decode_replay_game_events(contents):
