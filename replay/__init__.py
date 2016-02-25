@@ -681,8 +681,11 @@ class Replay:
             self.unitsInGame[deadUnitTag].positions[get_seconds_from_event_gameloop(e)] = [e['m_x'], e['m_y']]
 
             if self.unitsInGame[deadUnitTag].is_plant_vehicle():
-                self.unitsInGame[deadUnitTag].ownerList[0][2] = self.unitsInGame[deadUnitTag].diedAt - \
+                if len(self.unitsInGame[deadUnitTag].ownerList) > 0:
+                    self.unitsInGame[deadUnitTag].ownerList[0][2] = self.unitsInGame[deadUnitTag].diedAt - \
                                                                 self.unitsInGame[deadUnitTag].ownerList[0][1]
+                else:
+                    self.teams[ self.unitsInGame[deadUnitTag].team].totalWastedPlants += 1
 
             if self.temp_indexes.get(deadUnitTag):
                 del self.temp_indexes[deadUnitTag]
