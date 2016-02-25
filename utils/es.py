@@ -4,7 +4,7 @@ from elasticsearch_dsl import Search, Q
 
 
 class ES:
-    def __init__(self, host, port, index, es_type):
+    def __init__(self, index, es_type, host=None, port=None):
         if not index or not es_type:
             print 'Init error - you need to provide index and type'
             exit(1)

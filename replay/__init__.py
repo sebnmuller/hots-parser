@@ -4,6 +4,8 @@ __author__ = 'Rodrigo Duenas, Cristian Orellana'
 from models import *
 from hashlib import sha256
 import json
+import datetime
+from utils import es
 
 
 
@@ -43,6 +45,7 @@ class Replay:
         id = "%s_%s" % (self.replayInfo.randomVal,_id)
         return sha256(id).hexdigest()
 
+    # TODO: Extract methods, tidy this up massively, give indexing feedback
     def process_replay_events(self):
         events_contents = self.replayFile.read_file('replay.game.events')
         events = self.protocol.decode_replay_game_events(events_contents)
@@ -50,23 +53,18 @@ class Replay:
         details = self.protocol.decode_replay_details(details_contents)
         self.replayInfo = HeroReplay(details)
         start_time = details['m_timeUTC']
-        start_timestamp = self.replayInfo.startTime
+        date_format = '%Y-%m-%d %H:%M:%S'
+        es_index = 'hots-parser'
+        es_type = 'replay'
+        client = es.ES(es_index, es_type)
+        actions = []
         for event in events:
-            # print 'start: '
-            # print start_time
-            # print start_timestamp
-            # print 'current: '
-            print win_timestamp_to_date(start_time + event['_gameloop'])
-            # print start_time + event['_gameloop']
-            # print event['_gameloop']
-            # print 'current: '
-            # print get_event_timestamp(start_time, event['_gameloop'])
-            # print get_seconds_from_int_gameloop(event['_gameloop'])
-            # print event
+            current_time = (datetime.datetime.fromtimestamp(int((start_time/10000000) - 11644473600)) + datetime.timedelta(seconds=get_seconds_from_event_gameloop(event))).strftime(date_format)
+            event['timestamp'] = current_time
+            action = {'_index': es_index, '_type': es_type, '_source': event}
+            actions.append(action)
+        client.bulk_index_replays(actions)
 
-        # contents = archive.read_file('replay.game.events')
-        # for event in protocol.decode_replay_game_events(contents):
-        #     logger.log(sys.stdout, event)
 
     def process_replay_details(self):
         contents = self.replayFile.read_file('replay.details')
