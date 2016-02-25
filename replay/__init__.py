@@ -61,6 +61,8 @@ class Replay:
         for event in events:
             current_time = (datetime.datetime.fromtimestamp(int((start_time/10000000) - 11644473600)) + datetime.timedelta(seconds=get_seconds_from_event_gameloop(event))).strftime(date_format)
             event['timestamp'] = current_time
+            event['m_event_id'] = event['_eventid']
+            event['m_event'] = event['_event']
             action = {'_index': es_index, '_type': es_type, '_source': event}
             actions.append(action)
         client.bulk_index_replays(actions)
