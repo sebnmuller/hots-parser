@@ -2,8 +2,6 @@ __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
 import datetime
 from math import sqrt, sin, asin, degrees, hypot, radians
-from collections import OrderedDict
-
 
 
 def win_timestamp_to_date(ts=None, date_format='%Y-%m-%d %H:%M:%S'):
@@ -200,26 +198,4 @@ def find_player_key_from_user_id(playerList=None, userId=None):
             if v.id == userId:
                 return k
     return None
-
-def get_hero_death_from_tracker_events(e, heroList):
-    """
-    This function works by reading the specific Replay Tracker Event information
-    Parse the event and looks if a hero unit was destroyed, if so, adds a new entry to the deathList
-    """
-    deadUnitTag = get_unit_tag(e)
-    playerId = find_hero_key_from_tag(heroList, deadUnitTag)
-
-    if e['_event'] == 'NNet.Replay.Tracker.SUnitDiedEvent' and playerId is not None:
-        seconds = get_seconds_from_event_gameloop(e)
-
-        if e['m_killerUnitTagIndex']:
-            killerUnitTag = get_unit_tag(e)
-            heroDeathEvent = {'killerPlayerId': e['m_killerPlayerId'], 'killerUnitIndex': killerUnitTag}
-            heroList[playerId].deathList[seconds] = heroDeathEvent
-            heroList[playerId].deathCount += 1
-        else:
-            # There is a bug that cause m_killerUnitTagIndex and m_killerUnitTagRecycle to be null
-            heroDeathEvent = {'killerPlayerId': e['m_killerPlayerId'], 'killerUnitIndex': None}
-            heroList[playerId].deathList[seconds] = heroDeathEvent
-            heroList[playerId].deathCount += 1
 

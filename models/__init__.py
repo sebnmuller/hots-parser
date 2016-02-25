@@ -2,6 +2,7 @@ __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
 from helpers import *
 from data import *
+from collections import OrderedDict
 
 
 class Team():
@@ -65,6 +66,7 @@ class Team():
         self.siegeCampTaken = 0
         self.plantSumonedAt = []
         self.totalPlantsSummoned = 0
+        self.totalWastedPlants = 0
         self.totalPlantsDuration = 0
         self.plantDuration = []
         self.planPotDuration = []
