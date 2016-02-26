@@ -4,15 +4,18 @@ from elasticsearch_dsl import Search, Q
 
 
 class ES:
-    def __init__(self, index, es_type, host=None, port=None):
+    def __init__(self, index, es_type, host, port):
         if not index or not es_type:
             print 'Init error - you need to provide index and type'
             exit(1)
-        if not host or not port:
-            # Use default values for Elasticsearch if not provided
-            # TODO: actually use provided variables when connecting if provided
+        if not host:
             self.host = 'localhost'
+        else:
+            self.host = host
+        if not port:
             self.port = '9200'
+        else:
+            self.port = port
         self.index = index
         self.type = es_type
         self.client = self.connect()
@@ -22,7 +25,7 @@ class ES:
             print 'Connection error - You need to provide index and type'
             exit(1)
         try:
-            client = Elasticsearch()
+            client = Elasticsearch(host=self.host, port=self.port)
             # Wait until we get a non-red response from Elasticsearch
             client.cluster.health(wait_for_status='yellow')
             return client
@@ -57,7 +60,6 @@ class ES:
     #         "field":"value",
     #         }
     #  }
-    # TODO: define whether replays should include ALL events or each event is its own document
     def bulk_index_replays(self, actions):
         helpers.bulk(self.client, actions)
 
