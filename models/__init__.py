@@ -7,142 +7,205 @@ from collections import OrderedDict
 
 class Team():
     def __init__(self):
-        self.id = None
-        self.level = 0
-        self.memberList = list()
-        self.isWinner = None
-        self.isLoser = None
-        self.periodicXPBreakdown = []
-        self.totalXP = 0
-        self.totalMinionXP = 0
-        self.totalCreepXP = 0
-        self.totalStructureXP = 0
-        self.totalHeroXP = 0
-        self.totalTrickleXP = 0
+        # General team attributes
+        self.generalStats = {
+        "id": None,
+        "level":0,
+        "memberList": list(),
+        "isWinner": None,
+        "isLoser": None,
+        "periodicXPBreakdown": [],
+        "totalXP":0,
+        "totalMinionXP":0,
+        "totalCreepXP":0,
+        "totalStructureXP":0,
+        "totalHeroXP":0,
+        "totalTrickleXP":0,
+        "army_strength": {},
+        "merc_strength": {},
+        "missedRegenGlobes":0,  # regen globes no one took
+        "watchTowersTaken":0,
+        "bossTaken":0,
+        "mercsTaken":0,
+        "siegeCampTaken":0,
+        "levelEvents": []
+        }
         self.mapStats = {}
-        self.army_strength = {}
-        self.merc_strength = {}
 
 
-        self.wastedSoulGems = 0 # Totan number of gems no one took in Tomb of the Spider Queen map
-        self.pickedSoulGems = 0
-        self.summonedSpiderBosses = 0
-        self.spiderBossesNorthTotalAliveTime = 0
-        self.spiderBossesCenterTotalAliveTime = 0
-        self.spiderBossesSouthTotalAliveTime = 0
-        self.spiderBossesTotalAliveTime = 0
-        self.totalBuildingsKilledDuringSpiders = 0
-        self.totalUnitsKilledDuringSpiders = 0
-        self.totalBuildingsKilledDuringNorthSpider = 0
-        self.totalUnitsKilledDuringNorthSpider = 0
-        self.totalBuildingsKilledDuringCenterSpider = 0
-        self.totalUnitsKilledDuringCenterSpider = 0
-        self.totalBuildingsKilledDuringSouthSpider = 0
-        self.totalUnitsKilledDuringSouthSpider = 0
-        self.missedRegenGlobes = 0  # regen globes no one took
-        self.luxoriaTemplesCaptured = 0
-        self.luxoriaTemplesCapturedSeconds = 0
-        self.luxoriaTempleNorthCapturedSeconds = 0
-        self.luxoriaTempleNorthCaptured = 0
-        self.luxoriaTempleCenterCapturedSeconds = 0
-        self.luxoriaTempleCenterCaptured = 0
-        self.luxoriaTempleSouthCapturedSeconds = 0
-        self.luxoriaTempleSouthCaptured = 0
-        self.luxoriaTempleDmg = []
-        self.luxoriaTempleShots = []
-        self.luxoriaTemplesPct = 0
-        self.luxoriaTempleNorthPct = 0
-        self.luxoriaTempleCenterPct = 0
-        self.luxoriaTempleSouthPct = 0
-        self.luxoriaTempleNorthShots = [] # Shots per event for the team. The index is the event number.
-        self.luxoriaTempleCenterShots = [] # Shots per event for the team. The index is the event number.
-        self.luxoriaTempleSouthShots = []  # Shots per event for the team. The index is the event number.
-        self.luxoriaTempleNorthDmg = []
-        self.luxoriaTempleCenterDmg = []
-        self.luxoriaTempleSouthDmg = []
-        self.watchTowersTaken = 0
-        self.bossTaken = 0
-        self.mercsTaken = 0
-        self.siegeCampTaken = 0
-        self.plantSumonedAt = []
-        self.totalPlantsSummoned = 0
-        self.totalWastedPlants = 0
-        self.totalPlantsDuration = 0
-        self.plantDuration = []
-        self.planPotDuration = []
-        self.totalPlantPotDuration = 0
-        self.totalUnitsKilledByPlants = []
-        self.totalBuildingsKilledByPlants = []
-        self.totalBuildingsKilledDuringPlant = []
-        self.totalUnitsKilledDuringPlant = []
-        self.totalPlantPotsPlaced = 0
-        self.plantEffectiveness = []
-        self.totalPlantPotsKilled = 0
-        self.totalDragonsSummoned = 0
-        self.dragonCaptureTimes = [] # in seconds
-        self.totalDragonsDuration = 0
-        self.dragonDuration = []
-        self.totalUnitsKilledBydragons = []
-        self.totalBuildingsKilledBydragons = []
-        self.dragonEffectiveness = []
-        self.totalBuildingsKilledDuringdragon = []
-        self.totalUnitsKilledDuringdragon = []
-        self.wastedDragonTime = [] # How many seconds the dragon was available to be controlled but no one used it.
-        self.totalGolemsSummoned = 0
-        self.totalGolemDistanceTraveled = 0
-        self.golemDistanceTraveled = []
-        self.golemEffectiveness = []
-        self.golemDuration = []
-        self.totalUnitsKilledByGolem = 0
-        self.unitsKilledByGolem = []
-        self.totalBuildingsKilledByGolem = 0
-        self.buildingsKilledByGolem = []
-        self.totalUnitsKilledDuringGolem = 0
-        self.unitsKilledDuringGolem = []
-        self.totalBuildingsKilledDuringGolem = 0
-        self.buildingsKilledDuringGolem = []
-        self.totalGolemDuration = 0
-        self.totalShipsControlled = 0
-        self.totalUnitsKilledDuringShip = []
-        self.shipDurations = []
-        self.totalBuildingsDestroyedDuringShip = []
-        self.ghostShipScore = []
-        self.shipEffectiveness = []
-        self.summonedPunishers = 0
-        self.punisherSummonedAt = []
-        self.punisherTotalAliveTime = []
-        self.totalBuildingsKilledDuringPunisher = []
-        self.totalUnitsKilledDuringPunisher = []
-        self.punisherEfectiveness = []
-        self.punisherHeroDmg = []
-        self.punisherBuildingDmg = []
-        self.punisherType = []
-        self.levelEvents = []
-        self.tributesCapturedAt = [] # When the tribute was captured
-        self.totalTowersCaptured = 0 # for Towers of Doom Maps
-        self.towersCapturedAtFire = []
-        self.towersCapturedAt = []
-        self.altarsCapturedAt = [] #When was the altar captured by the team?
-        self.totalAltarsCaptured = 0
-        self.totalImmortalsSummoned = 0
-        self.immortalSummonedAt = []
-        self.immortalFightDuration = []
-        self.immortalDuration = []
-        self.immortalPower = []
-        self.immortalEffectiveness = []
-        self.unitsKilledDuringImmortal = []
-        self.totalUnitsKilledDuringImmortal = 0
-        self.buildingsDestroyedDuringImmortal = []
-        self.totalBuildingsDestroyedDuringImmortal = 0
-        self.curseCaptures = [] #How many tributes the team captured for each curse. 3 = team won the curse
-        self.curseActivatedAt = []
-        self.totalCursesWon = 0
-        self.shrineScore = []
+    def set_map_stats(self, map):
+        # Tomb of the spider queen map
+        tombOfSpiderStats = {
+        "summonedSpiderBosses": 0,
+        "spiderBossesNorthTotalAliveTime": 0,
+        "spiderBossesCenterTotalAliveTime": 0,
+        "spiderBossesSouthTotalAliveTime": 0,
+        "spiderBossesTotalAliveTime": 0,
+        "totalBuildingsKilledDuringSpiders": 0,
+        "totalUnitsKilledDuringSpiders": 0,
+        "totalBuildingsKilledDuringNorthSpider": 0,
+        "totalUnitsKilledDuringNorthSpider": 0,
+        "totalBuildingsKilledDuringCenterSpider": 0,
+        "totalUnitsKilledDuringCenterSpider": 0,
+        "totalBuildingsKilledDuringSouthSpider": 0,
+        "totalUnitsKilledDuringSouthSpider": 0
+        }
+
+        # Sky Temple map
+        skyTempleStats = {
+        "luxoriaTemplesCaptured": 0,
+        "luxoriaTemplesCapturedSeconds": 0,
+        "luxoriaTempleNorthCapturedSeconds": 0,
+        "luxoriaTempleNorthCaptured": 0,
+        "luxoriaTempleCenterCapturedSeconds": 0,
+        "luxoriaTempleCenterCaptured": 0,
+        "luxoriaTempleSouthCapturedSeconds": 0,
+        "luxoriaTempleSouthCaptured": 0,
+        "luxoriaTempleDmg": [],
+        "luxoriaTempleShots": [],
+        "luxoriaTemplesPct": 0,
+        "luxoriaTempleNorthPct": 0,
+        "luxoriaTempleCenterPct": 0,
+        "luxoriaTempleSouthPct": 0,
+        "luxoriaTempleNorthShots": [],
+        "luxoriaTempleCenterShots": [],
+        "luxoriaTempleSouthShots": [],
+        "luxoriaTempleNorthDmg": [],
+        "luxoriaTempleCenterDmg": [],
+        "luxoriaTempleSouthDmg": [],
+        }
+
+        # Garden of Terror Map
+        gardenStats = {
+        "plantSumonedAt": [],
+        "totalPlantsSummoned": 0,
+        "totalWastedPlants": 0,
+        "totalPlantsDuration": 0,
+        "plantDuration": [],
+        "planPotDuration": [],
+        "totalPlantPotDuration": 0,
+        "totalUnitsKilledByPlants": [],
+        "totalBuildingsKilledByPlants": [],
+        "totalBuildingsKilledDuringPlant": [],
+        "totalUnitsKilledDuringPlant": [],
+        "totalPlantPotsPlaced": 0,
+        "plantEffectiveness": [],
+        "totalPlantPotsKilled": 0,
+        "totalDragonsSummoned": 0,
+        }
+
+        # Dragon Shire
+        dragonShireStats = {
+        "dragonCaptureTimes": [], # in seconds
+        "totalDragonsDuration": 0,
+        "dragonDuration": [],
+        "totalUnitsKilledBydragons": [],
+        "totalBuildingsKilledBydragons": [],
+        "dragonEffectiveness": [],
+        "totalBuildingsKilledDuringdragon": [],
+        "totalUnitsKilledDuringdragon": [],
+        "wastedDragonTime": []
+        }# How many seconds the dragon was available to be controlled but no one used it.
+
+        # Haunted Mines Map
+        hauntedMinesStats = {
+        "totalGolemsSummoned": 0,
+        "totalGolemDistanceTraveled": 0,
+        "golemDistanceTraveled": [],
+        "golemEffectiveness": [],
+        "golemDuration": [],
+        "totalUnitsKilledByGolem": 0,
+        "unitsKilledByGolem": [],
+        "totalBuildingsKilledByGolem": 0,
+        "buildingsKilledByGolem": [],
+        "totalUnitsKilledDuringGolem": 0,
+        "unitsKilledDuringGolem": [],
+        "totalBuildingsKilledDuringGolem": 0,
+        "buildingsKilledDuringGolem": [],
+        "totalGolemDuration": 0
+        }
+
+        # Blackheart's Bay Map
+        blackheartsBayStats = {
+        "totalShipsControlled": 0,
+        "totalUnitsKilledDuringShip": [],
+        "shipDurations": [],
+        "totalBuildingsDestroyedDuringShip": [],
+        "ghostShipScore": [],
+        "shipEffectiveness": []
+        }
+
+        # Infernal Shrine Map
+        infernalShrinesStats = {
+        "summonedPunishers": 0,
+        "punisherSummonedAt": [],
+        "punisherTotalAliveTime": [],
+        "totalBuildingsKilledDuringPunisher": [],
+        "totalUnitsKilledDuringPunisher": [],
+        "punisherEfectiveness": [],
+        "punisherHeroDmg": [],
+        "punisherBuildingDmg": [],
+        "punisherType": [],
+        "shrineScore": []
+        }
+
+        # Cursed Hollow Map
+        cursedHollowStats = {
+        "tributesCapturedAt": [], # When the tribute was captured
+        "curseCaptures": [], #How many tributes the team captured for each curse. 3": team won the curse
+        "curseActivatedAt": [],
+        "totalCursesWon": 0
+        }
+
+        # Towers of Doom Map
+        towersOfDoomStats = {
+        "totalTowersCaptured": 0, # for Towers of Doom Maps
+        "towersCapturedAtFire": [],
+        "towersCapturedAt": [],
+        "altarsCapturedAt": [], #When was the altar captured by the team?
+        "totalAltarsCaptured": 0,
+        "totalImmortalsSummoned": 0
+        }
+
+        # Battlefield of Eternity Map
+        battlefieldEternityStats= {
+        "immortalSummonedAt": [],
+        "immortalFightDuration": [],
+        "immortalDuration": [],
+        "immortalPower": [],
+        "immortalEffectiveness": [],
+        "unitsKilledDuringImmortal": [],
+        "totalUnitsKilledDuringImmortal": 0,
+        "buildingsDestroyedDuringImmortal": [],
+        "totalBuildingsDestroyedDuringImmortal": 0
+        }
+
+        if map == 'Cursed Hollow':
+            self.mapStats = cursedHollowStats
+        elif map == 'Tomb of the Spider Queen':
+            self.mapStats = tombOfSpiderStats
+        elif map == 'Sky Temple':
+            self.mapStats = skyTempleStats
+        elif map == 'Battlefield of Eternity':
+            self.mapStats = battlefieldEternityStats
+        elif map == 'Garden of Terror':
+            self.mapStats = gardenStats
+        elif map == 'Dragon Shire':
+            self.mapStats = dragonShireStats
+        elif map == 'Blackheart\'s Bay':
+            self.mapStats = blackheartsBayStats
+        elif map == 'Towers of Doom':
+            self.mapStats = towersOfDoomStats
+        elif map == 'Infernal Shrines':
+            self.mapStats = infernalShrinesStats
+
+
+
 
     def add_member(self, hero, players):
         if hero.playerId is not None:
-            self.memberList.append(hero.playerId)
-            if self.isWinner is None:
+            self.generalStats['memberList'].append(hero.playerId)
+            if self.generalStats['isWinner'] is None:
                 self.id = "Blue" if players[hero.playerId].team == 0 else "Red"
                 self.isWinner = players[hero.playerId].is_winner()
                 self.isLoser = players[hero.playerId].is_loser()

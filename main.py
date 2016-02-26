@@ -27,8 +27,8 @@ def save_to_db(replayData, path):
             print "Team %s reached level %s (%s)" % (team.id, team.level, 'Winner' if team.isWinner else 'Loser')
             for metric, value in team.__dict__.iteritems():
                 print "%s: %s" % (metric, value)
-            print sorted(team.army_strength)
-            print [value for (key, value) in sorted(team.army_strength.items())]
+            print sorted(team.generalStats['army_strength'])
+            print [value for (key, value) in sorted(team.generalStats['army_strength'].items())]
         print "\n\nHEROES INFORMATION ___________________________________"
         for hero in replayData.heroList:
             print "[%s] Hero: %s (%s) played by %s " % ("Human" if replayData.heroList[hero].isHuman else "AI", replayData.heroList[hero].name, replayData.heroList[hero].playerId, replayData.players[replayData.heroList[hero].playerId].name)
@@ -110,17 +110,17 @@ def save_to_db(replayData, path):
 
         if mapName.strip() == 'Garden of Terror':
             for team in xrange(0,len(replayData.teams)):
-                print "Team %s spawned %s plants that were alive a total of %s seconds" % (team, replayData.teams[team].totalPlantsSummoned, replayData.teams[team].totalPlantsDuration)
-                if replayData.teams[team].totalPlantsSummoned > 0:
-                    for plant in xrange(0, replayData.teams[team].totalPlantsSummoned):
+                print "Team %s spawned %s plants that were alive a total of %s seconds" % (team, replayData.teams[team].mapStats['totalPlantsSummoned'], replayData.teams[team].mapStats['totalPlantsDuration'])
+                if replayData.teams[team].mapStats['totalPlantsSummoned'] > 0:
+                    for plant in xrange(0, replayData.teams[team].mapStats['totalPlantsSummoned']):
                         print "\t Plant %s, summoned at %s, alive for %s had an effectiveness of %s " \
                               "(%s units killed and %s buildings destroyed) " % \
                               (plant+1,
-                               replayData.teams[team].plantSumonedAt[plant],
-                               replayData.teams[team].plantDuration[plant],
-                               replayData.teams[team].plantEffectiveness[plant],
-                               replayData.teams[team].totalUnitsKilledDuringPlant[plant],
-                               replayData.teams[team].totalBuildingsKilledDuringPlant[plant])
+                               replayData.teams[team].mapStats['plantSumonedAt'][plant],
+                               replayData.teams[team].mapStats['plantDuration'][plant],
+                               replayData.teams[team].mapStats['plantEffectiveness'][plant],
+                               replayData.teams[team].mapStats['totalUnitsKilledDuringPlant'][plant],
+                               replayData.teams[team].mapStats['totalBuildingsKilledDuringPlant'][plant])
 
         if mapName.strip() == 'Dragon Shire':
 

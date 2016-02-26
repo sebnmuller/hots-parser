@@ -35,7 +35,7 @@ class Replay:
     def get_replay_id(self):
         _id = list()
         for t in (0,1):
-            for h in self.teams[t].memberList:
+            for h in self.teams[t].generalStats['memberList']:
                 _id.append(self.players[h].toonHandle)
         _id = '_'.join(_id)
         id = "%s_%s" % (self.replayInfo.randomVal,_id)
@@ -46,6 +46,8 @@ class Replay:
         details = self.protocol.decode_replay_details(contents)
         self.replayInfo = HeroReplay(details)
         self.players = {}
+        for t in self.teams:
+            t.set_map_stats(self.replayInfo.mapName)
         totalPlayers = 0
         totalHumans = 0
         for player in details['m_playerList']:
@@ -128,7 +130,7 @@ class Replay:
         for capturedUnitTag in self.unitsInGame.keys():
             if self.unitsInGame[capturedUnitTag].is_regen_globe():
                 if len(self.unitsInGame[capturedUnitTag].ownerList) == 0:
-                        self.teams[self.unitsInGame[capturedUnitTag].team].missedRegenGlobes += 1
+                        self.teams[self.unitsInGame[capturedUnitTag].team].generalStats['missedRegenGlobes'] += 1
 
     def process_clicked_unit(self,e):
         if e['_event'] != 'NNet.Game.SCmdUpdateTargetUnitEvent':
@@ -163,7 +165,7 @@ class Replay:
                     seconds =  death['seconds']
                     victim_x = death['x']
                     victim_y = death['y']
-                    allies = [player for player in self.teams[team].memberList if hero <> player]
+                    allies = [player for player in self.teams[team].generalStats['memberList'] if hero <> player]
                     allied_dist = {}
                     w_dist = None
                     for allied in allies:
@@ -519,14 +521,14 @@ class Replay:
 
                     # Update teams stats
                     if self.unitsInGame[unitTag].team in xrange(0,len(self.teams)):
-                        self.teams[team].totalPlantsSummoned += 1
-                        self.teams[team].totalPlantsDuration += plant_duration_in_secs
-                        self.teams[team].plantDuration.append(plant_duration_in_secs)
-                        self.teams[team].totalUnitsKilledByPlants.append(totalUnits)
-                        self.teams[team].totalBuildingsKilledByPlants.append(totalBuildings)
-                        self.teams[team].plantEffectiveness.append(round(plant_effectiveness,2))
-                        self.teams[team].totalBuildingsKilledDuringPlant.append(buildings_killed_during)
-                        self.teams[team].totalUnitsKilledDuringPlant.append(units_killed_during)
+                        self.teams[team].mapStats['totalPlantsSummoned'] += 1
+                        self.teams[team].mapStats['totalPlantsDuration'] += plant_duration_in_secs
+                        self.teams[team].mapStats['plantDuration'].append(plant_duration_in_secs)
+                        self.teams[team].mapStats['totalUnitsKilledByPlants'].append(totalUnits)
+                        self.teams[team].mapStats['totalBuildingsKilledByPlants'].append(totalBuildings)
+                        self.teams[team].mapStats['plantEffectiveness'].append(round(plant_effectiveness,2))
+                        self.teams[team].mapStats['totalBuildingsKilledDuringPlant'].append(buildings_killed_during)
+                        self.teams[team].mapStats['totalUnitsKilledDuringPlant'].append(units_killed_during)
                     # Update Hero Stats
                     self.heroList[controller_playerId].totalPlantsControlled += 1
                     self.heroList[controller_playerId].unitsKilledAsPlant.append(units_killed_during)
@@ -543,11 +545,11 @@ class Replay:
                 if team in xrange(0,len(self.teams)):
                     potDuration = pot.gameLoopsAlive if pot.gameLoopsAlive > -1 \
                         else (self.replayInfo.gameLoops - pot.bornAtGameLoops)
-                    self.teams[team].totalPlantPotsPlaced += 1
-                    self.teams[team].planPotDuration.append(get_seconds_from_int_gameloop(potDuration))
-                    self.teams[team].totalPlantPotDuration += get_seconds_from_int_gameloop(potDuration)
+                    self.teams[team].mapStats['totalPlantPotsPlaced'] += 1
+                    self.teams[team].mapStats['planPotDuration'].append(get_seconds_from_int_gameloop(potDuration))
+                    self.teams[team].mapStats['totalPlantPotDuration'] += get_seconds_from_int_gameloop(potDuration)
                     if self.unitsInGame[unitTag].killerTag is not None:
-                        self.teams[abs(team - 1)].totalPlantPotsKilled += 1 # abs(team - 1) because is rival team
+                        self.teams[abs(team - 1)].mapStats['totalPlantPotsKilled'] += 1 # abs(team - 1) because is rival team
 
 
     def process_haunted_mines(self):
@@ -685,7 +687,7 @@ class Replay:
                     self.unitsInGame[deadUnitTag].ownerList[0][2] = self.unitsInGame[deadUnitTag].diedAt - \
                                                                 self.unitsInGame[deadUnitTag].ownerList[0][1]
                 else:
-                    self.teams[ self.unitsInGame[deadUnitTag].team].totalWastedPlants += 1
+                    self.teams[ self.unitsInGame[deadUnitTag].team].mapStats['totalWastedPlants'] += 1
 
             if self.temp_indexes.get(deadUnitTag):
                 del self.temp_indexes[deadUnitTag]
@@ -710,16 +712,16 @@ class Replay:
                 end = unit.get_death_time(self.replayInfo.duration_in_secs())
                 for second in xrange(unit.bornAt, end + 1):
                     try:
-                        if self.teams[unit.team].army_strength.get(second):
-                            self.teams[unit.team].army_strength[second] += unit.get_strength()
+                        if self.teams[unit.team].generalStats['army_strength'].get(second):
+                            self.teams[unit.team].generalStats['army_strength'][second] += unit.get_strength()
                         else:
-                            self.teams[unit.team].army_strength[second] = unit.get_strength()
+                            self.teams[unit.team].generalStats['army_strength'][second] = unit.get_strength()
 
                         if unit.is_mercenary():
-                            if self.teams[unit.team].merc_strength.get(second):
-                                self.teams[unit.team].merc_strength[second] += unit.get_strength()
+                            if self.teams[unit.team].generalStats['merc_strength'].get(second):
+                                self.teams[unit.team].generalStats['merc_strength'][second] += unit.get_strength()
                             else:
-                                self.teams[unit.team].merc_strength[second] = unit.get_strength()
+                                self.teams[unit.team].generalStats['merc_strength'][second] = unit.get_strength()
                     except Exception, e:
                       # for some cosmic reason some events are happening after the game is over D:
                       print e.message
@@ -754,7 +756,7 @@ class Replay:
                 isHero = True
                 self.heroList[hero.playerId] = hero
                 # create/update team
-                if hero.playerId not in self.teams[hero.team].memberList:
+                if hero.playerId not in self.teams[hero.team].generalStats['memberList']:
                     self.teams[hero.team].add_member(hero, self.players)
 
 
@@ -1044,7 +1046,7 @@ class Replay:
         for data in event['m_fixedData']:
             if data['m_key'] == 'TeamID':
                 team = int(data['m_value']/4096) - 1
-        self.teams[team].plantSumonedAt.append(seconds)
+        self.teams[team].mapStats['plantSumonedAt'].append(seconds)
 
 
     def process_altar_captured(self, event):
@@ -1138,10 +1140,10 @@ class Replay:
         self.heroList[player].levelEvents.append(levelUpEvent)
         totalEvents = len(self.heroList[player].levelEvents)
         team = self.heroList[player].team
-        totalTeamEvents = len(self.teams[team].levelEvents)
+        totalTeamEvents = len(self.teams[team].generalStats['levelEvents'])
         # Insert the event in the team too. Don't add if the event is already there
         if totalEvents > totalTeamEvents:
-            self.teams[team].levelEvents.append(levelUpEvent)
+            self.teams[team].generalStats['levelEvents'].append(levelUpEvent)
 
         self.teams[team].level = level #set the level
 
@@ -1193,7 +1195,7 @@ class Replay:
                 xp_report['seconds'] = reportTime
             elif fixedData['m_key'].endswith('XP'):
                 xp_report[fixedData['m_key']] = fixedData['m_value']/4096
-        self.teams[team].periodicXPBreakdown.append(xp_report)
+        self.teams[team].generalStats['periodicXPBreakdown'].append(xp_report)
 
     def process_gates_open(self, event):
         self.replayInfo.gatesOpenedAt = get_seconds_from_int_gameloop(get_gameloops(event))
@@ -1206,11 +1208,11 @@ class Replay:
         team = (int(event['m_fixedData'][0]['m_value']) / 4096) - 1
 
         if 'Boss' in campType:
-            self.teams[team].bossTaken += 1
+            self.teams[team].generalStats['bossTaken'] += 1
         elif 'Bruiser' in campType:
-            self.teams[team].mercsTaken += 1
+            self.teams[team].generalStats['mercsTaken'] += 1
         elif 'Siege' in campType:
-            self.teams[team].siegeCampTaken += 1
+            self.teams[team].generalStats['siegeCampTaken'] += 1
 
     def process_hero_dead_time(self, event):
         # Not getting gameloop nor seconds because this is supossed to be only at end of game
