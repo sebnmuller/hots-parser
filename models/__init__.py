@@ -440,7 +440,7 @@ class GameUnit(Unit):
         self.team = e['m_upkeepPlayerId'] - 11 if e['m_upkeepPlayerId'] > 10 else e['m_upkeepPlayerId'] - 1 # Team this unit belongs to, or Hero controlling it at born time (if it's <= 10)
         self.bornAtX = e['m_x']
         self.bornAtY = e['m_y']
-        self.positions = {} # key seconds, val = dict {'x','y'}
+        self.positions = {self.bornAt: [self.bornAtX, self.bornAtY]} # key seconds, val = dict {'x','y'}
         self.distanceFromKiller = -1;
         if not self.is_plant_vehicle():
             self.positions[get_seconds_from_int_gameloop(self.bornAtGameLoops)] = [self.bornAtX, self.bornAtY]

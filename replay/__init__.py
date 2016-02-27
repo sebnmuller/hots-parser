@@ -185,7 +185,7 @@ class Replay:
                                 allied_dist[allied].append(calculate_distance(victim_x, victim_y, allied_x, allied_y))
                         w_dist = calculate_weighted_average(allied_dist[allied], weights)
                         if w_dist >= 10:
-                            away_allies += 1
+                            away_allies += 1 # how to measure when the allied player is dead and we have no position?
                     if away_allies >= 3:
                         self.heroList[hero].soloDeathsCount += 1
                         death['soloDeath'] = True
