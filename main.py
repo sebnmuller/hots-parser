@@ -24,7 +24,7 @@ def save_to_db(replayData, path):
         print "Duration: %s secs (%s gl)" % (replayData.replayInfo.duration_in_secs(), replayData.replayInfo.gameLoops)
         print "TEAMS INFORMATION ____________________________________"
         for team in replayData.teams:
-            print "Team %s reached level %s (%s)" % (team.id, team.level, 'Winner' if team.isWinner else 'Loser')
+            print "Team %s reached level %s (%s)" % (team.generalStats['id'], team.generalStats['level'], 'Winner' if team.generalStats['isWinner'] else 'Loser')
             for metric, value in team.__dict__.iteritems():
                 print "%s: %s" % (metric, value)
             print sorted(team.generalStats['army_strength'])
