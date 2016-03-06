@@ -47,8 +47,10 @@ class Replay:
 
     # TODO: Extract methods, tidy this up massively, give indexing feedback
     def process_replay_events(self):
-        events_contents = self.replayFile.read_file('replay.game.events')
-        events = self.protocol.decode_replay_game_events(events_contents)
+        game_events_contents = self.replayFile.read_file('replay.game.events')
+        game_events = self.protocol.decode_replay_game_events(game_events_contents)
+        tracker_events_contents = self.replayFile.read_file('replay.tracker.events')
+        tracker_events = self.protocol.decode_replay_tracker_events(tracker_events_contents)
         details_contents = self.replayFile.read_file('replay.details')
         details = self.protocol.decode_replay_details(details_contents)
         self.replayInfo = HeroReplay(details)
@@ -56,15 +58,23 @@ class Replay:
         date_format = '%Y-%m-%d %H:%M:%S'
         es_index = 'hots-parser'
         es_type = 'replay'
-        client = es.ES(es_index, es_type)
+        es_host = 'localhost'
+        es_port = 9202
+        client = es.ES(es_index, es_type, es_host, es_port)
         actions = []
-        for event in events:
-            current_time = (datetime.datetime.fromtimestamp(int((start_time/10000000) - 11644473600)) + datetime.timedelta(seconds=get_seconds_from_event_gameloop(event))).strftime(date_format)
+
+        for event in tracker_events:
+            current_time = (datetime.datetime.fromtimestamp(int((start_time / 10000000) - 11644473600)) + datetime.timedelta(seconds=get_seconds_from_event_gameloop(event))).strftime(date_format)
             event['timestamp'] = current_time
-            event['m_event_id'] = event['_eventid']
-            event['m_event'] = event['_event']
+            event['event_id'] = event['_eventid']
+            event['event'] = event['_event']
+
+            if event['event'] == 'NNet.Replay.Tracker.SUnitBornEvent':
+                self.NNet_Replay_Tracker_SUnitBornEvent(event)
+
             action = {'_index': es_index, '_type': es_type, '_source': event}
             actions.append(action)
+            print action
         client.bulk_index_replays(actions)
 
 
