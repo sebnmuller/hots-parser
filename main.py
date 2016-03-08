@@ -1,7 +1,7 @@
 __author__ = 'Rodrigo Duenas, Cristian Orellana'
 
 import argparse
-from heroprotocol import protocol40431 as protocol
+from heroprotocol import protocol41150 as protocol
 from heroprotocol.mpyq import mpyq
 from os import path
 from parser import processEvents
@@ -18,6 +18,7 @@ def save_to_db(replayData, path):
     just to give an idea of what is being calculated
     """
     if replayData:
+        print "timeLine: %s" % jsonpickle.encode(replayData.timeLine)
 
         print "=== MAP: %s (%s by %s) ===" % (replayData.replayInfo.mapName, replayData.replayInfo.mapSize['x'],  replayData.replayInfo.mapSize['y'])
         mapName = replayData.replayInfo.mapName
@@ -31,86 +32,110 @@ def save_to_db(replayData, path):
             print [value for (key, value) in sorted(team.generalStats['army_strength'].items())]
         print "\n\nHEROES INFORMATION ___________________________________"
         for hero in replayData.heroList:
-            print "[%s] Hero: %s (%s) played by %s " % ("Human" if replayData.heroList[hero].isHuman else "AI", replayData.heroList[hero].name, replayData.heroList[hero].playerId, replayData.players[replayData.heroList[hero].playerId].name)
+            print "[%s] Hero: %s (playerId: %s) played by %s (id: %s)" % ("Human" if replayData.heroList[hero].isHuman else "AI", replayData.heroList[hero].name, replayData.heroList[hero].playerId, replayData.players[replayData.heroList[hero].playerId].name, replayData.heroList[hero].id)
 
             for metric, value in replayData.heroList[hero].__dict__.iteritems():
-                if metric not in ('castedAbilities'):
-                    if type(value) is list:
-                        print "\t%s:" % metric
-                        for v in value:
-                            print "\t\t%s" % v
-                    else:
-                        print "\t%s: %s" % (metric, value)
+                if type(value) is list:
+                    print "\t%s:" % metric
+                    for v in value:
+                        print "\t\t%s" % v
+                else:
+                    print "\t%s: %s" % (metric, value)
 
-        # Todo standardize team name treatment
+
         if mapName.strip() == 'Cursed Hollow':
             for team in xrange(0,len(replayData.teams)):
                 print "Team %s took %s tributes at %s and won %s curse event(s)" % \
-                      (replayData.teams[team].id,
-                       len(replayData.teams[team].tributesCapturedAt),
-                       replayData.teams[team].tributesCapturedAt,
-                       replayData.teams[team].totalCursesWon)
-                for event in xrange(0, replayData.teams[team].totalCursesWon):
+                      (replayData.teams[team].generalStats['id'],
+                       len(replayData.teams[team].mapStats['tributesCapturedAt']),
+                       replayData.teams[team].mapStats['tributesCapturedAt'],
+                       replayData.teams[team].mapStats['totalCursesWon'])
+                for event in xrange(0, replayData.teams[team].mapStats['totalCursesWon']):
                     print "\tIn curse %s (activated at %s) team captured %s tributes, opponent team captured %s" %  \
                         (event + 1,
-                         replayData.teams[team].curseActivatedAt[event],
-                         replayData.teams[team].curseCaptures[event]['teamScore'],
-                         replayData.teams[team].curseCaptures[event]['opponentScore'],
+                         replayData.teams[team].mapStats['curseActivatedAt'][event],
+                         replayData.teams[team].mapStats['curseCaptures'][event]['teamScore'],
+                         replayData.teams[team].mapStats['curseCaptures'][event]['opponentScore'],
                          )
 
         if mapName.strip() == 'Tomb of the Spider Queen':
             for team in xrange(0,len(replayData.teams)):
-                print "Team %s took %s gems and missed %s - Summoned %s spiders in %s waves" % (team, replayData.teams[team].pickedSoulGems, replayData.teams[team].wastedSoulGems, replayData.teams[team].summonedSpiderBosses, replayData.teams[team].summonedSpiderBosses/3)
-                print "\tSpiders were alive a total of %s seconds, %s buildings and %s units were killed during this time" % (replayData.teams[team].spiderBossesTotalAliveTime, replayData.teams[team].totalBuildingsKilledDuringSpiders, replayData.teams[team].totalUnitsKilledDuringSpiders)
-                print "\tNorth: %s buildings, %s units - South: %s, %s - Center: %s, %s" % (replayData.teams[team].totalBuildingsKilledDuringNorthSpider, replayData.teams[team].totalUnitsKilledDuringNorthSpider, replayData.teams[team].totalBuildingsKilledDuringSouthSpider, replayData.teams[team].totalUnitsKilledDuringSouthSpider, replayData.teams[team].totalBuildingsKilledDuringCenterSpider, replayData.teams[team].totalUnitsKilledDuringCenterSpider)
-                max_lifespan = max(replayData.teams[team].spiderBossesCenterTotalAliveTime, replayData.teams[team].spiderBossesNorthTotalAliveTime, replayData.teams[team].spiderBossesSouthTotalAliveTime)
-                position = "center" if replayData.teams[team].spiderBossesCenterTotalAliveTime == max_lifespan else "north" if replayData.teams[team].spiderBossesNorthTotalAliveTime == max_lifespan else "south"
+                print "Team %s took %s gems and missed %s - Summoned %s spiders in %s waves" % \
+                        (replayData.teams[team].generalStats['id'],
+                        replayData.teams[team].mapStats['pickedSoulGems'],
+                        replayData.teams[team].mapStats['wastedSoulGems'],
+                        replayData.teams[team].mapStats['summonedSpiderBosses'],
+                        replayData.teams[team].mapStats['summonedSpiderBosses']/3
+                        )
+                print "\tSpiders were alive a total of %s seconds, %s buildings and %s units were killed during this time" % \
+                      (replayData.teams[team].mapStats['spiderBossesTotalAliveTime'],
+                       replayData.teams[team].mapStats['totalBuildingsKilledDuringSpiders'],
+                       replayData.teams[team].mapStats['totalUnitsKilledDuringSpiders'])
+                print "\tNorth: %s buildings, %s units - South: %s, %s - Center: %s, %s" % \
+                      (replayData.teams[team].mapStats['totalBuildingsKilledDuringNorthSpider'],
+                       replayData.teams[team].mapStats['totalUnitsKilledDuringNorthSpider'],
+                       replayData.teams[team].mapStats['totalBuildingsKilledDuringSouthSpider'],
+                       replayData.teams[team].mapStats['totalUnitsKilledDuringSouthSpider'],
+                       replayData.teams[team].mapStats['totalBuildingsKilledDuringCenterSpider'],
+                       replayData.teams[team].mapStats['totalUnitsKilledDuringCenterSpider'])
+                max_lifespan = max(replayData.teams[team].mapStats['spiderBossesCenterTotalAliveTime'],
+                                   replayData.teams[team].mapStats['spiderBossesNorthTotalAliveTime'],
+                                   replayData.teams[team].mapStats['spiderBossesSouthTotalAliveTime'])
+                position = "center" if replayData.teams[team].mapStats['spiderBossesCenterTotalAliveTime'] == max_lifespan else "north" if replayData.teams[team].mapStats['spiderBossesNorthTotalAliveTime'] == max_lifespan else "south"
                 print "\tThe spider that lived the longest was located at the %s" % (position)
-                print "\tMissed %s regen globes" % (replayData.teams[team].missedRegenGlobes)
+                print "\tMissed %s regen globes" % (replayData.teams[team].generalStats['missedRegenGlobes'])
 
 
         if mapName.strip() == 'Sky Temple':
             for team in xrange(0,len(replayData.teams)):
-                if (replayData.teams[team].luxoriaTemplesCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTemplesCapturedSeconds)) > 0:
-                    percent = 100 * round(replayData.teams[team].luxoriaTemplesCapturedSeconds/(replayData.teams[team].luxoriaTemplesCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTemplesCapturedSeconds)),2)
+                if (replayData.teams[team].mapStats['luxoriaTemplesCapturedSeconds']+float(replayData.teams[abs(team-1)].mapStats['luxoriaTemplesCapturedSeconds'])) > 0:
+                    percent = 100 * round(replayData.teams[team].mapStats['luxoriaTemplesCapturedSeconds']
+                                          /(replayData.teams[team].mapStats['luxoriaTemplesCapturedSeconds']
+                                          +float(replayData.teams[abs(team-1)].mapStats['luxoriaTemplesCapturedSeconds'])),2)
                 else:
                     percent = 0
 
-                if (replayData.teams[team].luxoriaTempleNorthCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleNorthCapturedSeconds)) > 0:
-                    northPercent = 100 * round(replayData.teams[team].luxoriaTempleNorthCapturedSeconds/(replayData.teams[team].luxoriaTempleNorthCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleNorthCapturedSeconds)),2)
+                if (replayData.teams[team].mapStats['luxoriaTempleNorthCapturedSeconds']+float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleNorthCapturedSeconds'])) > 0:
+                    northPercent = 100 * round(replayData.teams[team].mapStats['luxoriaTempleNorthCapturedSeconds']
+                                               /(replayData.teams[team].mapStats['luxoriaTempleNorthCapturedSeconds']
+                                               +float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleNorthCapturedSeconds'])),2)
                 else:
                     northPercent = 0
 
-                if (replayData.teams[team].luxoriaTempleCenterCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleCenterCapturedSeconds)) > 0:
-                    southPercent = 100 * round(replayData.teams[team].luxoriaTempleCenterCapturedSeconds/(replayData.teams[team].luxoriaTempleCenterCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleCenterCapturedSeconds)),2)
+                if (replayData.teams[team].mapStats['luxoriaTempleCenterCapturedSeconds']+float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleCenterCapturedSeconds'])) > 0:
+                    southPercent = 100 * round(replayData.teams[team].mapStats['luxoriaTempleCenterCapturedSeconds']
+                                               /(replayData.teams[team].mapStats['luxoriaTempleCenterCapturedSeconds']+
+                                               float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleCenterCapturedSeconds'])),2)
                 else:
                     southPercent = 0
 
-                if (replayData.teams[team].luxoriaTempleSouthCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleSouthCapturedSeconds)) > 0:
-                    centerPercent = 100 * round(replayData.teams[team].luxoriaTempleSouthCapturedSeconds/(replayData.teams[team].luxoriaTempleSouthCapturedSeconds+float(replayData.teams[abs(team-1)].luxoriaTempleSouthCapturedSeconds)),2)
+                if (replayData.teams[team].mapStats['luxoriaTempleSouthCapturedSeconds']+float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleSouthCapturedSeconds'])) > 0:
+                    centerPercent = 100 * round(replayData.teams[team].mapStats['luxoriaTempleSouthCapturedSeconds']/
+                                               (replayData.teams[team].mapStats['luxoriaTempleSouthCapturedSeconds']
+                                               +float(replayData.teams[abs(team-1)].mapStats['luxoriaTempleSouthCapturedSeconds'])),2)
                 else:
                     centerPercent = 0
 
-                print "Team %s controlled temples %s percent of the time (%s seconds)" % (team, percent, replayData.teams[team].luxoriaTemplesCapturedSeconds)
-                print "\t North Tower: %s percent (%s seconds)" % (northPercent, replayData.teams[team].luxoriaTempleNorthCapturedSeconds)
-                print "\t South Tower: %s percent (%s seconds)" % (southPercent, replayData.teams[team].luxoriaTempleCenterCapturedSeconds)
-                print "\t Center Tower: %s percent (%s seconds)" % (centerPercent, replayData.teams[team].luxoriaTempleSouthCapturedSeconds)
+                print "Team %s controlled temples %s percent of the time (%s seconds)" % (replayData.teams[team].generalStats['id'], percent, replayData.teams[team].mapStats['luxoriaTemplesCapturedSeconds'])
+                print "\t North Tower: %s percent (%s seconds)" % (northPercent, replayData.teams[team].mapStats['luxoriaTempleNorthCapturedSeconds'])
+                print "\t South Tower: %s percent (%s seconds)" % (southPercent, replayData.teams[team].mapStats['luxoriaTempleCenterCapturedSeconds'])
+                print "\t Center Tower: %s percent (%s seconds)" % (centerPercent, replayData.teams[team].mapStats['luxoriaTempleSouthCapturedSeconds'])
 
         if mapName.strip() == 'Battlefield of Eternity':
             for team in xrange(0, len(replayData.teams)):
-                print "Team %s spawned %s immortals" % (replayData.teams[team].id, replayData.teams[team].totalImmortalsSummoned)
-                for immortal in xrange(0, replayData.teams[team].totalImmortalsSummoned):
+                print "Team %s spawned %s immortals" % (replayData.teams[team].generalStats['id'], replayData.teams[team].mapStats['totalImmortalsSummoned'])
+                for immortal in xrange(0, replayData.teams[team].mapStats['totalImmortalsSummoned']):
                     print "\tImmortal %s summoned at %s after a %s seconds fight with %s percent power" % \
                           (immortal + 1,
-                           replayData.teams[team].immortalSummonedAt[immortal],
-                           replayData.teams[team].immortalFightDuration[immortal],
-                           replayData.teams[team].immortalPower[immortal],
+                           replayData.teams[team].mapStats['immortalSummonedAt'][immortal],
+                           replayData.teams[team].mapStats['immortalFightDuration'][immortal],
+                           replayData.teams[team].mapStats['immortalPower'][immortal],
                            )
 
 
         if mapName.strip() == 'Garden of Terror':
             for team in xrange(0,len(replayData.teams)):
-                print "Team %s spawned %s plants that were alive a total of %s seconds" % (team, replayData.teams[team].mapStats['totalPlantsSummoned'], replayData.teams[team].mapStats['totalPlantsDuration'])
+                print "Team %s spawned %s plants that were alive a total of %s seconds" % (replayData.teams[team].generalStats['id'], replayData.teams[team].mapStats['totalPlantsSummoned'], replayData.teams[team].mapStats['totalPlantsDuration'])
                 if replayData.teams[team].mapStats['totalPlantsSummoned'] > 0:
                     for plant in xrange(0, replayData.teams[team].mapStats['totalPlantsSummoned']):
                         print "\t Plant %s, summoned at %s, alive for %s had an effectiveness of %s " \
@@ -126,70 +151,70 @@ def save_to_db(replayData, path):
 
             for team in xrange(0, len(replayData.teams)):
                 print "Team %s spawned %s dragons that were alive a total of %s seconds" % \
-                      (team, replayData.teams[team].totalDragonsSummoned, replayData.teams[team].totalDragonsDuration)
-                if replayData.teams[team].totalDragonsSummoned > 0:
-                    for dragon in xrange(0, replayData.teams[team].totalDragonsSummoned):
+                      (replayData.teams[team].generalStats['id'], replayData.teams[team].mapStats['totalDragonsSummoned'], replayData.teams[team].mapStats['totalDragonsDuration'])
+                if replayData.teams[team].mapStats['totalDragonsSummoned'] > 0:
+                    for dragon in xrange(0, replayData.teams[team].mapStats['totalDragonsSummoned']):
                         print "\tDragon summoned at %s, alive for %s seconds had an effectiveness of %s (%s units killed and %s buildings destroyed) " % \
-                              (replayData.teams[team].dragonCaptureTimes[dragon],
-                               replayData.teams[team].dragonDuration[dragon],
-                               replayData.teams[team].dragonEffectiveness[dragon],
-                               replayData.teams[team].totalUnitsKilledDuringdragon[dragon],
-                               replayData.teams[team].totalBuildingsKilledDuringdragon[dragon])
+                              (replayData.teams[team].mapStats['dragonCaptureTimes'][dragon],
+                               replayData.teams[team].mapStats['dragonDuration'][dragon],
+                               replayData.teams[team].mapStats['dragonEffectiveness'][dragon],
+                               replayData.teams[team].mapStats['totalUnitsKilledDuringdragon'][dragon],
+                               replayData.teams[team].mapStats['totalBuildingsKilledDuringdragon'][dragon])
                         print "\tIn this dragon, Team %s had the control for %s seconds before it changed ownership, Team %s had it for %s seconds " % (
                                                             team,
-                                                            replayData.teams[team].wastedDragonTime[dragon],
+                                                            replayData.teams[team].mapStats['wastedDragonTime'][dragon],
                                                             abs(team-1),
-                                                            replayData.teams[abs(team-1)].wastedDragonTime[dragon])
+                                                            replayData.teams[abs(team-1)].mapStats['wastedDragonTime'][dragon])
 
         if mapName.strip() == 'Infernal Shrines':
             for team in xrange(0, len(replayData.teams)):
                 print "Team %s spawned %s punishers that were alive a total of %s seconds" % \
-                      (team,
-                       replayData.teams[team].summonedPunishers,
-                       sum(replayData.teams[team].punisherTotalAliveTime))
+                      (replayData.teams[team].generalStats['id'],
+                       replayData.teams[team].mapStats['summonedPunishers'],
+                       sum(replayData.teams[team].mapStats['punisherTotalAliveTime']))
 
-                for punisher in xrange(0, replayData.teams[team].summonedPunishers):
+                for punisher in xrange(0, replayData.teams[team].mapStats['summonedPunishers']):
                     print "\tPunisher %s, summoned at %s (%s v/s %s), alive for %s inflicted %s hero damage and %s structure damage had an effectiveness of %s " \
                           "(%s units killed and %s buildings destroyed) " % \
-                          (replayData.teams[team].punisherType[punisher],
-                           replayData.teams[team].punisherSummonedAt[punisher],
-                           replayData.teams[team].shrineScore[punisher]['teamScore'],
-                           replayData.teams[team].shrineScore[punisher]['opponentScore'],
-                           replayData.teams[team].punisherTotalAliveTime[punisher],
-                           replayData.teams[team].punisherHeroDmg[punisher],
-                           replayData.teams[team].punisherBuildingDmg[punisher],
-                           replayData.teams[team].punisherEfectiveness[punisher],
-                           replayData.teams[team].totalUnitsKilledDuringPunisher[punisher],
-                           replayData.teams[team].totalBuildingsKilledDuringPunisher[punisher])
+                          (replayData.teams[team].mapStats['punisherType'][punisher],
+                           replayData.teams[team].mapStats['punisherSummonedAt'][punisher],
+                           replayData.teams[team].mapStats['shrineScore'][punisher]['teamScore'],
+                           replayData.teams[team].mapStats['shrineScore'][punisher]['opponentScore'],
+                           replayData.teams[team].mapStats['punisherTotalAliveTime'][punisher],
+                           replayData.teams[team].mapStats['punisherHeroDmg'][punisher],
+                           replayData.teams[team].mapStats['punisherBuildingDmg'][punisher],
+                           replayData.teams[team].mapStats['punisherEfectiveness'][punisher],
+                           replayData.teams[team].mapStats['totalUnitsKilledDuringPunisher'][punisher],
+                           replayData.teams[team].mapStats['totalBuildingsKilledDuringPunisher'][punisher])
 
         if mapName.strip() == 'Blackheart\'s Bay':
             for team in xrange(0, len(replayData.teams)):
                 print "Team %s controlled %s ships for a total of %s seconds" % \
-                      (team,
-                       replayData.teams[team].totalShipsControlled,
-                       sum(replayData.teams[team].shipDurations))
-                for ship in xrange(0, len(replayData.teams[team].shipDurations)):
+                      (replayData.teams[team].generalStats['id'],
+                       replayData.teams[team].mapStats['totalShipsControlled'],
+                       sum(replayData.teams[team].mapStats['shipDurations']))
+                for ship in xrange(0, len(replayData.teams[team].mapStats['shipDurations'])):
                     print "\t During ship %s (%s v/s %s) a total of %s units died and %s buildings where destroyed, " \
                           "the effectiveness was %s" % \
                           (ship+1,
-                           replayData.teams[team].ghostShipScore[ship]['teamScore'],
-                           replayData.teams[team].ghostShipScore[ship]['opponentScore'],
-                           replayData.teams[team].totalUnitsKilledDuringShip[ship],
-                           replayData.teams[team].totalBuildingsDestroyedDuringShip[ship],
-                           replayData.teams[team].shipEffectiveness[ship])
+                           replayData.teams[team].mapStats['ghostShipScore'][ship]['teamScore'],
+                           replayData.teams[team].mapStats['ghostShipScore'][ship]['opponentScore'],
+                           replayData.teams[team].mapStats['totalUnitsKilledDuringShip'][ship],
+                           replayData.teams[team].mapStats['totalBuildingsDestroyedDuringShip'][ship],
+                           replayData.teams[team].mapStats['shipEffectiveness'][ship])
 
         if mapName.strip() == 'Towers of Doom':
             for team in xrange(0, len(replayData.teams)):
                 print "Team %s captured %s towers at %s " % \
-                      (replayData.teams[team].id,
-                       replayData.teams[team].totalTowersCaptured,
-                       replayData.teams[team].towersCapturedAt)
-                print "Team %s captured %s altars" % (replayData.teams[team].id, replayData.teams[team].totalAltarsCaptured)
-                for altar in xrange(0, replayData.teams[team].totalAltarsCaptured):
+                      (replayData.teams[team].generalStats['id'],
+                       replayData.teams[team].mapStats['totalTowersCaptured'],
+                       replayData.teams[team].mapStats['towersCapturedAt'])
+                print "Team %s captured %s altars" % (replayData.teams[team].generalStats['id'], replayData.teams[team].mapStats['totalAltarsCaptured'])
+                for altar in xrange(0, replayData.teams[team].mapStats['totalAltarsCaptured']):
                     print "\t%s captured at %s inflicted %s points of damage to the core" % \
                     (altar + 1,
-                     replayData.teams[team].altarsCapturedAt[altar],
-                     replayData.teams[team].towersCapturedAtFire[altar])
+                     replayData.teams[team].mapStats['altarsCapturedAt'][altar],
+                     replayData.teams[team].mapStats['towersCapturedAtFire'][altar])
 
 def dump_data(entities=None, replay_data=None, file_path=None):
     if not entities or not path or not replay_data:
@@ -203,6 +228,7 @@ def dump_data(entities=None, replay_data=None, file_path=None):
         dump_teams(data=replay_data, output_path=file_path)
         dump_units(data=replay_data, output_path=file_path)
         dump_players(data=replay_data, output_path=file_path)
+        dump_timeline(data=replay_data, output_path=file_path)
 
     if entities == 'heroes':
         dump_heroes(data=replay_data, output_path=file_path)
@@ -215,6 +241,9 @@ def dump_data(entities=None, replay_data=None, file_path=None):
 
     if entities == 'players':
         dump_players(data=replay_data, output_path=file_path)
+
+    if entities == 'timeline':
+        dump_timeline(data=replay_data, output_path=file_path)
 
 
 def dump_heroes(data=None, output_path=None):
@@ -257,6 +286,15 @@ def dump_players(data=None, output_path=None):
             dump = jsonpickle.encode(data.players)
             f.write(dump)
 
+def dump_timeline(data=None, output_path=None):
+    if not data or not output_path:
+        return None
+    file_path = output_path + "timeline.json"
+    print "dumping timeline into %s" % file_path
+    with file(file_path, 'w') as f:
+        dump = jsonpickle.encode(data.timeLine)
+        f.write(dump)
+
 
 
 if __name__ == "__main__":
@@ -264,9 +302,10 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output-dir', help='Path to the output directory')
     parser.add_argument('-r', '--dump-heroes',  action='store_true', default=False, help='Indicates you want to dump hero data')
     parser.add_argument('-t', '--dump-teams', action='store_true', default=False, help='Indicates you want to dump teams data')
+    parser.add_argument('-l', '--dump-timeline', action='store_true', default=False, help='Indicates you want to dump timeline data')
     parser.add_argument('-u', '--dump-units',action='store_true', default=False, help='Indicates you want to dump units data')
     parser.add_argument('-p', '--dump-players',action='store_true', default=False, help='Indicates you want to dump player data')
-    parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units --dump-players')
+    parser.add_argument('-a', '--dump-all', action='store_true', default=False, help='Shortcut for --dump-heroes --dump-teams --dump-units --dump-players --dump-timeline')
     parser.add_argument('replay_path', help='Path to the .StormReplay file to process')
     args = parser.parse_args()
 
@@ -288,7 +327,7 @@ if __name__ == "__main__":
 
     if (args.dump_all):
         dump_data(entities='all', file_path=output_path, replay_data=replayData)
-    elif args.dump_heroes or args.dump_teams or args.dump_units or args.dump_players:
+    elif args.dump_heroes or args.dump_teams or args.dump_units or args.dump_players or args.dump_timeline:
         if (args.dump_heroes):
             dump_data(entities='heroes', file_path=output_path, replay_data=replayData)
         if (args.dump_teams):
@@ -297,6 +336,8 @@ if __name__ == "__main__":
             dump_data(entities='units', file_path=output_path, replay_data=replayData)
         if (args.dump_players):
             dump_data(entities='players', file_path=output_path, replay_data=replayData)
+        if (args.dump_timeline):
+            dump_data(entities='timeline', file_path=output_path, replay_data=replayData)
     else:
         print 'saving to db'
         save_to_db(replayData, args.replay_path)

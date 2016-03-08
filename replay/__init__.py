@@ -16,7 +16,7 @@ class Replay:
     replayInfo = None
     unitsInGame = {}
     temp_indexes = {} # key = UnitTagIndex, UnitTag
-    timeline = {} # key = when (in seconds), value = event {} key = team - value = description
+    timeLine = [] # key = when (in seconds), value = event {} key = team - value = description
     heroList = {} # key = playerId - content = hero instance
     upgrades = {} # key = gameloop - content = upgrade instance
     teams = [Team(), Team()]
@@ -68,10 +68,12 @@ class Replay:
         self.replayInfo.speed = initdata['m_syncLobbyState']['m_gameDescription']['m_gameSpeed']
 
 
+
     def process_replay_header(self):
         contents = self.replayFile.header['user_data_header']['content']
         header = self.protocol.decode_replay_header(contents)
         self.replayInfo.gameLoops = header['m_elapsedGameLoops']
+        # Todo use this to detect the correct protocol to use
         self.replayInfo.gameVersion = header['m_dataBuildNum']
 
     def process_replay_attributes(self):
@@ -188,10 +190,13 @@ class Replay:
                     else:
                         death['soloDeath'] = False
 
-
-
-
-
+                    # update the timeline
+                    for d in self.timeLine:
+                        if ( d['event'] == 'heroDeath'
+                            and d['seconds'] == seconds
+                            and d['team'] == team
+                            and d['unitName'] == self.heroList[hero].name):
+                                d['soloDeath'] = death['soloDeath']
 
     def process_cursed_hollow(self):
         return None
@@ -453,100 +458,107 @@ class Replay:
 
 
     def process_garden_of_terror(self):
-        for unitTag in self.unitsInGame.keys():
+        for unitTag in [u for u in self.unitsInGame if self.unitsInGame[u].is_plant_vehicle()]:
 
-            if self.unitsInGame[unitTag].is_plant_vehicle():
-                #print "Plant Count %s " % plant_count
-                # When a hero clicks on the Overgrowth plant 2 things happen:
-                # 1.- PlantHorrorOvergrowthPlant unit is created, the m_upkeepPlayerId of
-                # this unit is the controller of the plant
-                # 2.- VehiclePlantHorror unit is created, this is the actual unit the player controlls
-                # After the unit dies (by time up or damage) two things happen:
-                # 1.- There is a unitDie event for the unit, so we can get the diedAtGameLoop
-                # 2.- there is a NNet.Replay.Tracker.SUnitOwnerChangeEvent event the m_upkeepPlayerId is the same as
-                # the one who created the plant
-                # Notes:
-                # * There is also a NNet.Game.SCmdUpdateTargetUnitEvent in gameevent it doesn't add any new info.
-                # Update hero count
-                # Update Team Stats
-                if len(self.unitsInGame[unitTag].ownerList) > 0: # if the unit was controlled
-                    plant_effectiveness = 0
-                    units_killed_during = 0
-                    buildings_killed_during = 0
-                    positions = get_position_by_second(self.unitsInGame[unitTag], self.replayInfo.duration_in_secs())
-                    bornAt = self.unitsInGame[unitTag].ownerList[0][1]
-
-                    diedAt = self.unitsInGame[unitTag].get_death_time(self.replayInfo.duration_in_secs())
-                    plant_duration_in_secs = diedAt - self.unitsInGame[unitTag].ownerList[0][1]
-                    controller_playerId = self.unitsInGame[unitTag].ownerList[0][0]
-                    totalUnits =  self.unitsInGame[unitTag].unitsKilled
-                    totalBuildings = self.unitsInGame[unitTag].buildingsKilled
+            #print "Plant Count %s " % plant_count
+            # When a hero clicks on the Overgrowth plant 2 things happen:
+            # 1.- PlantHorrorOvergrowthPlant unit is created, the m_upkeepPlayerId of
+            # this unit is the controller of the plant
+            # 2.- VehiclePlantHorror unit is created, this is the actual unit the player controls
+            # After the unit dies (by time up or damage) two things happen:
+            # 1.- There is a unitDie event for the unit, so we can get the diedAtGameLoop
+            # 2.- there is a NNet.Replay.Tracker.SUnitOwnerChangeEvent event the m_upkeepPlayerId is the same as
+            # the one who created the plant
+            # Notes:
+            # * There is also a NNet.Game.SCmdUpdateTargetUnitEvent in gameevent it doesn't add any new info.
+            # Update hero count
+            # Update Team Stats
+            if len(self.unitsInGame[unitTag].ownerList) > 0: # if the unit was controlled
+                plant_effectiveness = 0
+                units_killed_during = 0
+                buildings_killed_during = 0
+                positions = get_position_by_second(self.unitsInGame[unitTag], self.replayInfo.duration_in_secs())
+                bornAt = self.unitsInGame[unitTag].ownerList[0][1]
+                diedAt = self.unitsInGame[unitTag].get_death_time(self.replayInfo.duration_in_secs())
+                plant_duration_in_secs = diedAt - self.unitsInGame[unitTag].ownerList[0][1]
+                controller_playerId = self.unitsInGame[unitTag].ownerList[0][0]
+                totalUnits =  self.unitsInGame[unitTag].unitsKilled
+                totalBuildings = self.unitsInGame[unitTag].buildingsKilled
 
 
-                    # Get units that died while this plant was active. Include only those who were near the unit.
-                    try:
-                        for unit in self.unitsInGame.keys():
-                            if self.unitsInGame[unit].diedAtGameLoops is not None:
-                                if self.unitsInGame[unit].team != self.heroList[controller_playerId].team and \
-                                        unit != unitTag and \
-                                        self.unitsInGame[unit].get_death_time(self.replayInfo.duration_in_secs()) in\
-                                        xrange(bornAt, diedAt + 1) and self.unitsInGame[unit].isDead:
-                                    if self.unitsInGame[unit].is_hired_mercenary() or \
-                                            self.unitsInGame[unit].is_army_unit() or \
-                                            self.unitsInGame[unit].is_advanced_unit() or \
-                                            self.unitsInGame[unit].is_building():
-                                        duration = self.replayInfo.duration_in_secs()
-                                        # when the unit died
-                                        targetDiedAt = self.unitsInGame[unit].get_death_time(duration)
-                                        diedY = self.unitsInGame[unit].diedAtY # Y coord when unit died
-                                        diedX = self.unitsInGame[unit].diedAtX # X coord when unit died
-                                        plant_x = positions[targetDiedAt][0] # X coord of plant when unit died
-                                        plant_y = positions[targetDiedAt][1] # Y coord of plant when unit died
-                                        distance_from_plant = calculate_distance(diedX, diedY, plant_x, plant_y)
-                                        if distance_from_plant > 0:
-                                            plant_effectiveness += 10/distance_from_plant * \
-                                                                   self.unitsInGame[unit].get_strength()
-                                            # that 10 is just a made up number LOL
-                                        if self.unitsInGame[unit].is_building():
-                                            buildings_killed_during += 1
-                                        else:
-                                            units_killed_during += 1
-                    except Exception:
-                        pass
+                # Get units that died while this plant was active. Include only those who were near the unit.
+                try:
+                    for unit in self.unitsInGame.keys():
+                        if self.unitsInGame[unit].diedAtGameLoops is not None:
+                            if self.unitsInGame[unit].team != self.heroList[controller_playerId].team and \
+                                    unit != unitTag and \
+                                    self.unitsInGame[unit].get_death_time(self.replayInfo.duration_in_secs()) in\
+                                    xrange(bornAt, diedAt + 1) and self.unitsInGame[unit].isDead:
+                                if self.unitsInGame[unit].is_hired_mercenary() or \
+                                        self.unitsInGame[unit].is_army_unit() or \
+                                        self.unitsInGame[unit].is_advanced_unit() or \
+                                        self.unitsInGame[unit].is_building():
+                                    duration = self.replayInfo.duration_in_secs()
+                                    # when the unit died
+                                    targetDiedAt = self.unitsInGame[unit].get_death_time(duration)
+                                    diedY = self.unitsInGame[unit].diedAtY # Y coord when unit died
+                                    diedX = self.unitsInGame[unit].diedAtX # X coord when unit died
+                                    plant_x = positions[targetDiedAt][0] # X coord of plant when unit died
+                                    plant_y = positions[targetDiedAt][1] # Y coord of plant when unit died
+                                    distance_from_plant = calculate_distance(diedX, diedY, plant_x, plant_y)
+                                    if distance_from_plant > 0:
+                                        plant_effectiveness += 10/distance_from_plant * \
+                                                               self.unitsInGame[unit].get_strength()
+                                        # that 10 is just a made up number LOL
+                                    if self.unitsInGame[unit].is_building():
+                                        buildings_killed_during += 1
+                                    else:
+                                        units_killed_during += 1
+                except Exception:
+                    pass
 
-                    team = self.unitsInGame[unitTag].team
+                team = self.unitsInGame[unitTag].team
 
-                    # Update teams stats
-                    if self.unitsInGame[unitTag].team in xrange(0,len(self.teams)):
-                        self.teams[team].mapStats['totalPlantsSummoned'] += 1
-                        self.teams[team].mapStats['totalPlantsDuration'] += plant_duration_in_secs
-                        self.teams[team].mapStats['plantDuration'].append(plant_duration_in_secs)
-                        self.teams[team].mapStats['totalUnitsKilledByPlants'].append(totalUnits)
-                        self.teams[team].mapStats['totalBuildingsKilledByPlants'].append(totalBuildings)
-                        self.teams[team].mapStats['plantEffectiveness'].append(round(plant_effectiveness,2))
-                        self.teams[team].mapStats['totalBuildingsKilledDuringPlant'].append(buildings_killed_during)
-                        self.teams[team].mapStats['totalUnitsKilledDuringPlant'].append(units_killed_during)
-                    # Update Hero Stats
-                    self.heroList[controller_playerId].mapStats['totalPlantsControlled'] += 1
-                    self.heroList[controller_playerId].mapStats['unitsKilledAsPlant'].append(units_killed_during)
-                    self.heroList[controller_playerId].mapStats['totalUnitsKilledAsPlant'] += units_killed_during
-                    self.heroList[controller_playerId].mapStats['buildingsKilledAsPlant'].append(buildings_killed_during)
-                    self.heroList[controller_playerId].mapStats['totalBuildingsKilledAsPlant'] += buildings_killed_during
-                    self.heroList[controller_playerId].mapStats['plantDuration'].append(plant_duration_in_secs)
+                # Update teams stats
+                if self.unitsInGame[unitTag].team in xrange(0,len(self.teams)):
+                    self.teams[team].mapStats['totalPlantsSummoned'] += 1
+                    self.teams[team].mapStats['totalPlantsDuration'] += plant_duration_in_secs
+                    self.teams[team].mapStats['plantDuration'].append(plant_duration_in_secs)
+                    self.teams[team].mapStats['totalUnitsKilledByPlants'].append(totalUnits)
+                    self.teams[team].mapStats['totalBuildingsKilledByPlants'].append(totalBuildings)
+                    self.teams[team].mapStats['plantEffectiveness'].append(round(plant_effectiveness,2))
+                    self.teams[team].mapStats['totalBuildingsKilledDuringPlant'].append(buildings_killed_during)
+                    self.teams[team].mapStats['totalUnitsKilledDuringPlant'].append(units_killed_during)
+                    self.teams[team].mapStats['plantController'].append(controller_playerId)
+                # Update Hero Stats
+                self.heroList[controller_playerId].mapStats['totalPlantsControlled'] += 1
+                self.heroList[controller_playerId].mapStats['unitsKilledAsPlant'].append(units_killed_during)
+                self.heroList[controller_playerId].mapStats['totalUnitsKilledAsPlant'] += units_killed_during
+                self.heroList[controller_playerId].mapStats['buildingsKilledAsPlant'].append(buildings_killed_during)
+                self.heroList[controller_playerId].mapStats['totalBuildingsKilledAsPlant'] += buildings_killed_during
+                self.heroList[controller_playerId].mapStats['plantDuration'].append(plant_duration_in_secs)
 
-            if self.unitsInGame[unitTag].is_plant_pot():
-                pot = self.unitsInGame[unitTag]
-                team = pot.team
-                # get pot duration, if the pot never dies (ie the game ends with the pot alive) then calculate
-                # the duration as end game time - birth time
-                if team in xrange(0,len(self.teams)):
-                    potDuration = pot.gameLoopsAlive if pot.gameLoopsAlive > -1 \
-                        else (self.replayInfo.gameLoops - pot.bornAtGameLoops)
-                    self.teams[team].mapStats['totalPlantPotsPlaced'] += 1
-                    self.teams[team].mapStats['planPotDuration'].append(get_seconds_from_int_gameloop(potDuration))
-                    self.teams[team].mapStats['totalPlantPotDuration'] += get_seconds_from_int_gameloop(potDuration)
-                    if self.unitsInGame[unitTag].killerTag is not None:
-                        self.teams[abs(team - 1)].mapStats['totalPlantPotsKilled'] += 1 # abs(team - 1) because is rival team
+
+        for unitTag in [p for p in self.unitsInGame if self.unitsInGame[p].is_plant_pot()]:
+
+            pot = self.unitsInGame[unitTag]
+            plantOwnerTeam = self.heroList[pot.team - 1].team
+            # get pot duration, if the pot never dies (ie the game ends with the pot alive) then calculate
+            # the duration as end game time - birth time
+
+            # hero stats - the team of the pot is the actual user who placed it
+            self.heroList[pot.team].mapStats['totalPlantPotsPlaced'] += 1
+            if plantOwnerTeam in xrange(0,len(self.teams)):
+                potDuration = pot.gameLoopsAlive if pot.gameLoopsAlive > -1 \
+                    else (self.replayInfo.gameLoops - pot.bornAtGameLoops)
+                self.teams[team].mapStats['totalPlantPotsPlaced'] += 1
+                self.teams[team].mapStats['plantPotDuration'].append(get_seconds_from_int_gameloop(potDuration))
+                self.teams[team].mapStats['totalPlantPotDuration'] += get_seconds_from_int_gameloop(potDuration)
+
+                if self.unitsInGame[unitTag].killerPlayerId is not None:
+                    self.teams[abs(team - 1)].mapStats['totalPlantPotsKilled'] += 1 # abs(team - 1) because is rival team
+                    if self.unitsInGame[unitTag].killerPlayerId != self.unitsInGame[unitTag].controlPlayerId:
+                        self.heroList[self.unitsInGame[unitTag].killerPlayerId-1].mapStats['totalPlantPotsKilled'] += 1
 
 
     def process_haunted_mines(self):
@@ -562,8 +574,9 @@ class Replay:
             if self.unitsInGame[unitTag].is_golem_body():
                 golem_body_positions[self.unitsInGame[unitTag].bornAtGameLoops] = self.unitsInGame[unitTag]
 
-
-            elif self.unitsInGame[unitTag].is_golem():
+            elif self.unitsInGame[unitTag].is_golem() and (
+                        self.unitsInGame[unitTag].killerPlayerId
+                        or (self.unitsInGame[unitTag].bornAtX != 0 and self.unitsInGame[unitTag].bornAtY != 0)):
                 if self.unitsInGame[unitTag].bornAtX == 0 and self.unitsInGame[unitTag].bornAtY == 0:
                     position = [gl for gl in golem_body_positions.keys() if gl <= self.unitsInGame[unitTag].bornAtGameLoops]
                     if len(position) > 0:
@@ -584,9 +597,9 @@ class Replay:
 
                 positions = get_position_by_second(self.unitsInGame[unitTag], self.replayInfo.duration_in_secs())
                 distance_traveled = calculate_distance(self.unitsInGame[unitTag].bornAtX,
-                    self.unitsInGame[unitTag].positions[self.unitsInGame[unitTag].diedAtGameLoops][0],
+                    self.unitsInGame[unitTag].diedAtX,
                     self.unitsInGame[unitTag].bornAtY,
-                    self.unitsInGame[unitTag].positions[self.unitsInGame[unitTag].diedAtGameLoops][1])
+                    self.unitsInGame[unitTag].diedAtY)
 
 
                 golem_duration_in_secs = diedAt - bornAt
@@ -617,7 +630,7 @@ class Replay:
                             else:
                                 units_killed_during_golem += 1
 
-                team = self.unitsInGame[unitTag].team
+                #team = self.unitsInGame[unitTag].team
                 self.teams[team].mapStats['totalGolemsSummoned'] += 1
                 self.teams[team].mapStats['totalGolemDuration'] += golem_duration_in_secs
                 self.teams[team].mapStats['golemDuration'].append(golem_duration_in_secs)
@@ -629,6 +642,8 @@ class Replay:
                 self.teams[team].mapStats['buildingsKilledByGolem'].append(buildings_destroyed_by_golem)
                 self.teams[team].mapStats['unitsKilledDuringGolem'].append(units_killed_during_golem)
                 self.teams[team].mapStats['golemDistanceTraveled'].append(distance_traveled)
+                self.teams[team].mapStats['buildingsKilledDuringGolem'].append(buildings_destroyed_during_golem)
+                self.teams[team].mapStats['totalBuildingsKilledDuringGolem'] += buildings_destroyed_during_golem
 
     def process_sky_temple(self):
         for unitTag in self.unitsInGame.keys():
@@ -662,6 +677,10 @@ class Replay:
         self.process_regen_globes_stats()
         self.calculate_solo_deaths()
 
+
+
+
+
     def get_unit_destruction(self, e):
         """
         Gets information when a non-hero unit is destroyed
@@ -669,15 +688,20 @@ class Replay:
         if e['_event'] == 'NNet.Replay.Tracker.SUnitDiedEvent':
             deadUnitTag = get_unit_tag(e)
 
-            self.unitsInGame[deadUnitTag].diedAt = get_seconds_from_event_gameloop(e)
+            if self.unitsInGame[deadUnitTag].diedAt == -1:
+                self.unitsInGame[deadUnitTag].diedAt = get_seconds_from_event_gameloop(e)
+                self.unitsInGame[deadUnitTag].diedAtGameLoops = get_gameloops(e)
+            self.unitsInGame[deadUnitTag].gameLoopsAlive = self.unitsInGame[deadUnitTag].diedAtGameLoops - \
+                                                           self.unitsInGame[deadUnitTag].bornAtGameLoops
             self.unitsInGame[deadUnitTag].isDead = True
             self.unitsInGame[deadUnitTag].diedAtX = e['m_x']
             self.unitsInGame[deadUnitTag].diedAtY = e['m_y']
-            self.unitsInGame[deadUnitTag].diedAtGameLoops = get_gameloops(e)
-            self.unitsInGame[deadUnitTag].gameLoopsAlive = self.unitsInGame[deadUnitTag].diedAtGameLoops - \
-                                                           self.unitsInGame[deadUnitTag].bornAtGameLoops
+
             self.unitsInGame[deadUnitTag].killerPlayerId = e['m_killerPlayerId']
             self.unitsInGame[deadUnitTag].positions[get_seconds_from_event_gameloop(e)] = [e['m_x'], e['m_y']]
+
+            # if self.unitsInGame[deadUnitTag].is_plant_pot():
+            #     print e
 
             if self.unitsInGame[deadUnitTag].is_plant_vehicle():
                 if len(self.unitsInGame[deadUnitTag].ownerList) > 0:
@@ -688,6 +712,22 @@ class Replay:
 
             if self.temp_indexes.get(deadUnitTag):
                 del self.temp_indexes[deadUnitTag]
+
+            if self.unitsInGame[deadUnitTag].is_building() and (
+                    self.unitsInGame[deadUnitTag].internalName in TIMELINE_BUILDINGS):
+                # only if tower, core or fort
+                self.timeLine.append({'event': 'buildingDestroyed',
+                                 'seconds': self.unitsInGame[deadUnitTag].diedAt,
+                                 'team': self.unitsInGame[deadUnitTag].team,
+                                 'unitName': self.unitsInGame[deadUnitTag].internalName})
+
+        if e['_event'] == 'NNet.Replay.Tracker.SUnitTypeChangeEvent':
+            # This is for towers
+            if e['m_unitTypeName'] == 'TownCannonTowerDead':
+                deadUnitTag = get_unit_tag(e)
+                self.unitsInGame[deadUnitTag].diedAt = get_seconds_from_event_gameloop(e)
+                self.unitsInGame[deadUnitTag].diedAtGameLoops = get_gameloops(e)
+
 
 
     def units_in_game(self):
@@ -721,7 +761,7 @@ class Replay:
                                 self.teams[unit.team].generalStats['merc_strength'][second] = unit.get_strength()
                     except Exception, e:
                       # for some cosmic reason some events are happening after the game is over D:
-                      print e.message
+                      print "error: %s" % e.message
 
 
 
@@ -827,31 +867,33 @@ class Replay:
                         self.heroList[hero].generalStats['totalIncDamage'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'GemsTurnedIn':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['totalGemsTurnedIn'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['totalGemsTurnedIn'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'RavenTributesCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['capturedTributes'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['capturedTributes'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DragonShrinesCaptured':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['totalShrinesCaptured'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['totalShrinesCaptured'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DamageDoneToImmortal':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['totalImmortalDmg'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['totalImmortalDmg'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'GardensSeedsCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['gardensSeedsCollected'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['gardensSeedsCollected'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'DamageDoneToShrineMinions':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['totalShrineMinionDmg'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['totalShrineMinionDmg'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'TimeInTemple':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['totaltimeInTemples'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['totaltimeInTemples'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'BlackheartDoubloonsCollected':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['coinsCollected'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['coinsCollected'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
                 elif name == 'BlackheartDoubloonsTurnedIn':
                     for hero in xrange(0,10):
-                        self.heroList[hero].generalStats['coinsTurnedIn'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                        self.heroList[hero].mapStats['coinsTurnedIn'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
+                elif name == 'MinesSkullsCollected':
+                    self.heroList[hero].mapStats['skullsCollected'] = int(instance['m_values'][self.heroList[hero].id][0]['m_value'])
 
     def NNet_Replay_Tracker_SStatGameEvent(self, event):
         eventName = event['m_eventName']
@@ -907,7 +949,7 @@ class Replay:
             self.process_garden_terror_activated(event)
 
         elif eventName == 'DragonKnightActivated':
-            pass
+            self.process_dragon_activated(event)
 
         elif eventName == 'Boss Duel Started':
             pass
@@ -944,6 +986,38 @@ class Replay:
         elif eventName == 'GhostShipCaptured':
             self.process_ghost_ship_captured(event)
 
+        elif eventName == 'GraveGolemSpawned':
+            self.process_golem_spawned(event)
+
+
+    def process_golem_spawned(self, event):
+        seconds =  get_seconds_from_int_gameloop(get_gameloops(event))
+        for data in event['m_intData']:
+            if data['m_key'] == 'Event':
+                eventNumber = int(data['m_value'])
+        for data in event['m_fixedData']:
+            if data['m_key'] == 'TeamID':
+                team = int(data['m_value']/4096) - 1
+            elif data['m_key'] == 'SkullCount':
+                skullsCollected = int(data['m_value']/4096)
+        self.timeLine.append({'event': 'golemSpawned',
+                              'seconds': seconds,
+                              'team': team,
+                              'skullCount': skullsCollected})
+
+    def process_dragon_activated(self, event):
+        seconds =  get_seconds_from_int_gameloop(get_gameloops(event))
+        for data in event['m_intData']:
+            if data['m_key'] == 'Event':
+                eventNumber = int(data['m_value'])
+        for data in event['m_fixedData']:
+            if data['m_key'] == 'TeamID':
+                team = int(data['m_value']/4096) - 1
+
+        self.timeLine.append({'event': 'dragonActivated',
+             'seconds': seconds,
+             'team': team})
+
     def process_temple_shots_fired(self, event):
         for data in event['m_intData']:
             if data['m_key'] == 'TempleID':
@@ -961,6 +1035,7 @@ class Replay:
             self.teams[team].mapStats['luxoriaTempleShots'][eventNumber] += 1
 
 
+
     def process_sky_temple_activated(self, event):
         for data in event['m_intData']:
             if data['m_key'] == 'TempleID':
@@ -972,11 +1047,12 @@ class Replay:
         for team in xrange(0, len(self.teams)):
             if len(self.teams[team].mapStats['luxoriaTempleDmg']) < eventNumber:
                 self.teams[team].mapStats['luxoriaTempleDmg'].append(0)
-                self.teams[team].mapStast['luxoriaTempleShots'].append(0)
+                self.teams[team].mapStats['luxoriaTempleShots'].append(0)
 
 
     def process_ghost_ship_captured(self, event):
         eventData = {}
+        seconds = get_seconds_from_int_gameloop(get_gameloops(event))
         for data in event['m_intData']:
             if data['m_key'] == 'TeamScore':
                 winScore = data['m_value']
@@ -988,9 +1064,15 @@ class Replay:
         eventData['teamScore'] = winScore
         eventData['opponentScore'] = losingScore
         self.teams[team].mapStats['ghostShipScore'].append(eventData)
+        self.timeLine.append({'event': 'shipActivated',
+                 'seconds': seconds,
+                 'team': team,
+                 'opponentScore': losingScore,
+                 'teamScore': winScore})
 
     def process_infernal_shrine_captured(self, event):
         eventData = {}
+        seconds = get_seconds_from_int_gameloop(get_gameloops(event))
         for data in event['m_intData']:
             if data['m_key'] == 'Winning Team':
                 team = int(data['m_value']) - 1
@@ -1001,6 +1083,12 @@ class Replay:
         eventData['teamScore'] = winScore
         eventData['opponentScore'] = losingScore
         self.teams[team].mapStats['shrineScore'].append(eventData)
+        self.timeLine.append({'event': 'shrineCapture',
+                 'seconds': seconds,
+                 'team': team,
+                 'opponentScore': losingScore,
+                 'teamScore': winScore})
+
 
     def process_raven_curse_activated(self, event):
         eventData = {}
@@ -1008,17 +1096,22 @@ class Replay:
         seconds = get_seconds_from_int_gameloop(get_gameloops(event))
         for data in event['m_intData']:
             if data['m_key'] == 'TeamScore':
-                teamGems = data['m_value']
+                teamScore = data['m_value']
             elif data['m_key'] == 'OpponentScore':
                 opponentCaptures = data['m_value']
             elif data['m_key'] == 'Event':
                 eventNumber = data['m_value']
-        eventData['teamScore'] = teamGems
+        eventData['teamScore'] = teamScore
         eventData['opponentScore'] = opponentCaptures
         self.teams[team].mapStats['curseActivatedAt'].append(seconds)
         self.teams[team].mapStats['totalCursesWon'] += 1
         self.teams[team].mapStats['curseCaptures'].append(eventData)
         self.replayInfo.totalCurses += 1
+        self.timeLine.append({'event': 'curseUp',
+                 'seconds': seconds,
+                 'team': team,
+                 'opponentScore': opponentCaptures,
+                 'teamScore': teamScore})
 
 
 
@@ -1037,7 +1130,11 @@ class Replay:
         self.teams[team].mapStats['immortalSummonedAt'].append(seconds)
         self.teams[team].mapStats['immortalFightDuration'].append(fightDuration)
         self.teams[team].mapStats['immortalPower'].append(immortalPower)
-        #self.teams[team].immortalDuration # calculate separatelly
+        self.timeLine.append({'event': 'immortalDefeated',
+                              'seconds': seconds,
+                              'team': team,
+                              'power': immortalPower})
+        #self.teams[team].immortalDuration # calculate separately
 
     def process_garden_terror_activated(self, event):
         seconds = get_seconds_from_int_gameloop(get_gameloops(event))
@@ -1045,6 +1142,9 @@ class Replay:
             if data['m_key'] == 'TeamID':
                 team = int(data['m_value']/4096) - 1
         self.teams[team].mapStats['plantSumonedAt'].append(seconds)
+        self.timeLine.append({'event': 'terrorActivated',
+                 'seconds': seconds,
+                 'team': team})
 
 
     def process_altar_captured(self, event):
@@ -1057,6 +1157,10 @@ class Replay:
         self.teams[team].mapStats['altarsCapturedAt'].append(seconds)
         self.teams[team].mapStats['towersCapturedAtFire'].append(towersCaptured)
         self.teams[team].mapStats['totalAltarsCaptured'] += 1
+        self.timeLine.append({'event': 'altarCaptured',
+                 'seconds': seconds,
+                 'team': team,
+                 'shots': towersCaptured})
 
     def process_punisher_killed(self, event):
         seconds = get_seconds_from_int_gameloop(get_gameloops(event))
@@ -1081,14 +1185,23 @@ class Replay:
         self.teams[team].mapStats['punisherHeroDmg'].append(heroDmg)
         self.teams[team].mapStats['punisherBuildingDmg'].append(siegeDmg)
         self.teams[team].mapStats['summonedPunishers'] += 1
+        self.timeLine.append({'event': 'punisherKilled',
+                 'seconds': seconds,
+                 'team': team,
+                 'heroDmg': heroDmg,
+                 'type': type,
+                 'buildingDmg': siegeDmg})
 
     def process_town_captured(self,event):
         for data in event['m_intData']:
             if data['m_key'] == 'New Owner':
                 team = int(data['m_value']) - 11
         seconds = get_seconds_from_int_gameloop(get_gameloops(event))
-        self.teams[team].totalTowersCaptured += 1
-        self.teams[team].towersCapturedAt.append(seconds)
+        self.teams[team].mapStats['totalTowersCaptured'] += 1
+        self.teams[team].mapStats['towersCapturedAt'].append(seconds)
+        self.timeLine.append({'event': 'fortCaptured',
+                 'seconds': seconds,
+                 'team': team})
 
     def process_tribute_collected(self, event):
         for data in event['m_fixedData']:
@@ -1096,6 +1209,10 @@ class Replay:
                 team = int(data['m_value']/4096) - 1
         seconds = get_seconds_from_int_gameloop(get_gameloops(event))
         self.teams[team].mapStats['tributesCapturedAt'].append(seconds)
+        self.timeLine.append({'event': 'tributeCollected',
+                 'seconds': seconds,
+                 'team': team})
+
 
     def process_talent_chosen(self, event):
         talentEvent = {}
@@ -1143,8 +1260,13 @@ class Replay:
         # Insert the event in the team too. Don't add if the event is already there
         if totalEvents > totalTeamEvents:
             self.teams[team].generalStats['levelEvents'].append(levelUpEvent)
+            self.timeLine.append({'event': 'levelUp',
+                 'seconds': seconds,
+                 'team': team,
+                 'level': level})
 
         self.teams[team].generalStats['level'] = level #set the level
+
 
     def process_team_xp_breakdown(self, event):
         player = int(event['m_intData'][0]['m_value']) - 1
@@ -1168,7 +1290,9 @@ class Replay:
         self.teams[team].generalStats['totalXP'] = minionXP + creepXP + heroXP + trickleXP + structureXP
 
     def process_soul_eater_spawn(self, event):
-        team = event['m_fixedData'][0]['m_value']/4096
+        for data in event['m_fixedData']:
+            if data['m_key'] == 'TeamID':
+                team = int(round(float(data['m_value'])/4096)) - 1
         for data in event['m_intData']:
             if data['m_key'] == 'TeamScore':
                 teamGems = data['m_value']
@@ -1176,7 +1300,14 @@ class Replay:
                 opponentGems = data['m_value']
             elif data['m_key'] == 'Event':
                 eventNumber = data['m_value']
-                #TODO finish this
+
+        self.timeLine.append({'event': 'soulEaterSpawned',
+                     'seconds': get_seconds_from_event_gameloop(event),
+                     'team': team,
+                     'teamGems': teamGems,
+                     'opponentGems': opponentGems
+                     })
+
 
 
     def process_periodic_xp_breakdown(self, event):
@@ -1209,10 +1340,22 @@ class Replay:
 
         if 'Boss' in campType:
             self.teams[team].generalStats['bossTaken'] += 1
+            self.timeLine.append({'event': 'bossTaken',
+                                 'seconds': get_seconds_from_int_gameloop(gl),
+                                 'team': team
+                                 })
         elif 'Bruiser' in campType:
             self.teams[team].generalStats['mercsTaken'] += 1
+            self.timeLine.append({'event': 'bruiserCampTaken',
+                                 'seconds': get_seconds_from_int_gameloop(gl),
+                                 'team': team
+                                 })
         elif 'Siege' in campType:
             self.teams[team].generalStats['siegeCampTaken'] += 1
+            self.timeLine.append({'event': 'siegeCampTaken',
+                                 'seconds': get_seconds_from_int_gameloop(gl),
+                                 'team': team
+                                 })
 
     def process_hero_dead_time(self, event):
         # Not getting gameloop nor seconds because this is supossed to be only at end of game
@@ -1239,6 +1382,14 @@ class Replay:
         # Append the dict to the list of deaths of this hero
         self.heroList[victim].generalStats['deaths'].append(kill)
         self.heroList[victim].generalStats['deathCount'] += 1
+        self.teams[self.heroList[victim].team].generalStats['totalHeroesKilledByEnemy'] += 1
+        self.teams[abs(self.heroList[victim].team - 1)].generalStats['totalEnemyHeroesTakenDown'] += 1
+        self.timeLine.append({'event': 'heroDeath',
+                              'seconds': get_seconds_from_int_gameloop(gl),
+                              'team': self.heroList[victim].team,
+                              'unitName': self.heroList[victim].name,
+                              'soloDeath': None
+                              })
 
 
     def process_regen_globes(self, event):
@@ -1246,6 +1397,16 @@ class Replay:
             #print event['m_intData'][0]['m_value']
             heroIndex = event['m_intData'][0]['m_value'] - 1
             self.heroList[heroIndex].generalStats['regenGlobesTaken'] += 1
+
+    def NNet_Replay_Tracker_SUnitTypeChangeEvent(self, event):
+    # I have to implement this because of the way the towers are destroyed when attached to a gate.
+    # Looks like if the tower is attached to a gate and the gate is not yet destroyed then the tower
+    # changes is unit type to 'TownCannonTowerDead' and then, when the gate is destroyed the actual
+    # NNet.Replay.Tracker.SUnitDiedEvent arrives for the unit
+        if event['_event'] != 'NNet.Replay.Tracker.SUnitTypeChangeEvent':
+            return None
+
+        self.get_unit_destruction(event)
 
 
     def NNet_Replay_Tracker_SUnitDiedEvent(self, event):
@@ -1292,7 +1453,6 @@ class Replay:
     def NNet_Game_SCmdUpdateTargetPointEvent(self, event):
         self.utpe[event['_gameloop']] = event
 
-
     def NNet_Replay_Tracker_SUnitPositionsEvent(self, event):
         if event['_event'] != 'NNet.Replay.Tracker.SUnitPositionsEvent':
             return None
@@ -1334,8 +1494,7 @@ class Replay:
                         if ability:
                             self.heroList[playerId].generalStats['castedAbilities'][ability.castedAtGameLoops] = ability
                             seconds = get_seconds_from_int_gameloop(ability.castedAtGameLoops)
-                            self.unitsInGame[ability.targetUnitTag].positions[seconds] = [int(ability.x),
-                                                                                          int(ability.y)]
+                            self.unitsInGame[ability.targetUnitTag].positions[seconds] = [int(ability.x),int(ability.y)]
 
                 else:
                 # This was not a targeted skill
@@ -1347,4 +1506,4 @@ class Replay:
                         if ability:
                             self.heroList[playerId].generalStats['castedAbilities'][ability.castedAtGameLoops] = ability
         except Exception, e:
-            print e
+            pass

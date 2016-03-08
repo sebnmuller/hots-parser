@@ -28,7 +28,9 @@ class Team():
         "bossTaken":0,
         "mercsTaken":0,
         "siegeCampTaken":0,
-        "levelEvents": []
+        "levelEvents": [],
+        "totalEnemyHeroesTakenDown": 0, # How many enemy heroes this team killed?
+        'totalHeroesKilledByEnemy': 0 # how many times the heroes of this team were killed by the enemy?
         }
         self.mapStats = {}
 
@@ -36,6 +38,8 @@ class Team():
     def set_map_stats(self, map):
         # Tomb of the spider queen map
         tombOfSpiderStats = {
+        "pickedSoulGems": 0,
+        "wastedSoulGems": 0,
         "summonedSpiderBosses": 0,
         "spiderBossesNorthTotalAliveTime": 0,
         "spiderBossesCenterTotalAliveTime": 0,
@@ -82,7 +86,7 @@ class Team():
         "totalWastedPlants": 0,
         "totalPlantsDuration": 0,
         "plantDuration": [],
-        "planPotDuration": [],
+        "plantPotDuration": [],
         "totalPlantPotDuration": 0,
         "totalUnitsKilledByPlants": [],
         "totalBuildingsKilledByPlants": [],
@@ -91,7 +95,7 @@ class Team():
         "totalPlantPotsPlaced": 0,
         "plantEffectiveness": [],
         "totalPlantPotsKilled": 0,
-        "totalDragonsSummoned": 0,
+        "plantController": []
         }
 
         # Dragon Shire
@@ -104,7 +108,8 @@ class Team():
         "dragonEffectiveness": [],
         "totalBuildingsKilledDuringdragon": [],
         "totalUnitsKilledDuringdragon": [],
-        "wastedDragonTime": []
+        "wastedDragonTime": [],
+        "totalDragonsSummoned": 0,
         }# How many seconds the dragon was available to be controlled but no one used it.
 
         # Haunted Mines Map
@@ -164,11 +169,11 @@ class Team():
         "towersCapturedAt": [],
         "altarsCapturedAt": [], #When was the altar captured by the team?
         "totalAltarsCaptured": 0,
-        "totalImmortalsSummoned": 0
         }
 
         # Battlefield of Eternity Map
         battlefieldEternityStats= {
+        "totalImmortalsSummoned": 0,
         "immortalSummonedAt": [],
         "immortalFightDuration": [],
         "immortalDuration": [],
@@ -198,6 +203,8 @@ class Team():
             self.mapStats = towersOfDoomStats
         elif map == 'Infernal Shrines':
             self.mapStats = infernalShrinesStats
+        elif map == 'Haunted Mines':
+            self.mapStats = hauntedMinesStats
 
 
 
@@ -222,7 +229,7 @@ class Team():
 
 
 
-class Unit():
+class Unit:
 
     def __init__(self):
         self.bornAtX = -1
@@ -290,8 +297,7 @@ class HeroUnit(Unit):
         "totalHeroDmg" : 0,
         "totalCreepDmg" : 0,
         "totalSummonDmg" : 0,
-        "totalImmortalDmg" : 0, # Total damage done to the immortals
-        "totalGemsTurnedIn" : 0,
+
         "secondsCCOnEnemies" : 0,
         "maxKillSpree" : 0, # maximum number of heroes killed after (if ever) die
         "capturedBeaconTowers" : 0,
@@ -308,6 +314,9 @@ class HeroUnit(Unit):
         "clickedTributes" : 0, # How many times the hero clicked a tribute in the Curse map
         }
 
+        mineStats = {
+        "skullsCollected": 0
+        }
 
         # Garden map
         gardenStats = {
@@ -319,10 +328,9 @@ class HeroUnit(Unit):
         "totalBuildingsKilledAsPlant" : 0,
         "polymorphedUnits" : [],
         "totalPolymorphedUnits" : 0,
-        "plantPotsPlaced" : 0,
         "plantDuration" : [],
         "totalPlantPotsPlaced" : 0,
-        "totalPlantPotsKilled" : 0,
+        "totalPlantPotsKilled" : 0
         }
 
         # Punisher map
@@ -334,6 +342,7 @@ class HeroUnit(Unit):
         # Spider map
         tombOfSpiderStats = {
         "totalSoulsTaken" : 0, # How many times the hero collected soul shards on the tomb of the spider queen map
+        "totalGemsTurnedIn" : 0,
         }
 
 
@@ -361,14 +370,18 @@ class HeroUnit(Unit):
         "coinsEffectiveness" : 0,
         }
 
+        battlefieldEternityStats = {
+            "totalImmortalDmg" : 0, # Total damage done to the immortals
+        }
+
         if map == 'Cursed Hollow':
             self.mapStats = cursedHollowStats
         elif map == 'Tomb of the Spider Queen':
             self.mapStats = tombOfSpiderStats
         elif map == 'Sky Temple':
             self.mapStats = skyTempleStats
-        # elif map == 'Battlefield of Eternity':
-        #     self.mapStats = battlefieldEternityStats
+        elif map == 'Battlefield of Eternity':
+             self.mapStats = battlefieldEternityStats
         elif map == 'Garden of Terror':
             self.mapStats = gardenStats
         elif map == 'Dragon Shire':
@@ -376,9 +389,11 @@ class HeroUnit(Unit):
         elif map == 'Blackheart\'s Bay':
             self.mapStats = blackheartsBayStats
         # elif map == 'Towers of Doom':
-        #     self.mapStats = towersOfDoomStats
+        #      self.mapStats = towersOfDoomStats
         elif map == 'Infernal Shrines':
             self.mapStats = infernalShrinesStats
+        elif map == 'Haunted Mines':
+            self.mapStats = mineStats
 
 
     def get_total_damage(self):
@@ -404,7 +419,7 @@ class HeroUnit(Unit):
         return True
 
 
-class HeroReplay():
+class HeroReplay:
     def __init__(self, details):
         # General Data
         self.startTime = None # UTC
@@ -488,6 +503,7 @@ class GameUnit(Unit):
         self.diedAtY = None
         self.diedAtGameLoops = None
         self.gameLoopsAlive = -1 # -1 means never died.
+        self.controlPlayerId = e['m_controlPlayerId']
         self.killerTeam = None
         self.killerTag = None
         self.killerTagIndex = None
@@ -625,6 +641,10 @@ class BaseAbility():
     def __str__(self):
         return "%s" % self.abilityTag
 
+    def __repr__(self):
+        return "BaseAbility(%r)" % (self.abilityTag)
+
+
 
 class TargetPointAbility(BaseAbility):
 
@@ -642,6 +662,9 @@ class TargetPointAbility(BaseAbility):
             self.x = event['m_target']['x']/4096.0
             self.y = event['m_target']['y']/4096.0
             self.z = event['m_target']['z']/4096.0
+
+    def __repr__(self):
+        return "TargetPointAbility(%r, (%r, %r, %r))" % (self.abilityTag, self.x, self.y, self.z)
 
     def __str__(self):
         return "Skill: %s\tCoords: (%s,%s,%s)" % (self.abilityTag, self.x, self.y, self.z)
@@ -677,6 +700,9 @@ class TargetUnitAbility(BaseAbility):
             self.targetPlayerId = event['m_target']['m_snapshotControlPlayerId']
             self.targetTeamId = event['m_target']['m_snapshotUpkeepPlayerId']
             self.targetUnitTag = event['m_target']['m_tag']
+
+    def __repr__(self):
+        return "TargetUnitAbility(%r, %r, (%r, %r, %r))" % (self.abilityTag, self.targetPlayerId, self.x, self.y, self.z)
 
     def __str__(self):
         return "Skill: %s\tCoords: (%s,%s,%s)\tTarget: %s" % (self.abilityTag, self.x, self.y, self.z, self.targetUnitTag)
