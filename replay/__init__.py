@@ -190,10 +190,13 @@ class Replay:
                     else:
                         death['soloDeath'] = False
 
-
-
-
-
+                    # update the timeline
+                    for d in self.timeLine:
+                        if ( d['event'] == 'heroDeath'
+                            and d['seconds'] == seconds
+                            and d['team'] == team
+                            and d['unitName'] == self.heroList[hero].name):
+                                d['soloDeath'] = death['soloDeath']
 
     def process_cursed_hollow(self):
         return None

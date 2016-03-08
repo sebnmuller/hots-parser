@@ -229,7 +229,7 @@ class Team():
 
 
 
-class Unit():
+class Unit:
 
     def __init__(self):
         self.bornAtX = -1
@@ -419,7 +419,7 @@ class HeroUnit(Unit):
         return True
 
 
-class HeroReplay():
+class HeroReplay:
     def __init__(self, details):
         # General Data
         self.startTime = None # UTC
