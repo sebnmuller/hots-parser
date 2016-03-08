@@ -16,8 +16,11 @@ DRAGON_STATUE = ['VehicleDragon']
 GOLEM_UNIT = ['UnderworldSummonedBoss']
 GOLEM_BODY = ['UnderworldSummonedBossBody']
 PUNISHER_UNIT = ['MercPunisherLaner']
-PUNISHER_ORDER = ['Mortar', 'Ice', 'Arcane']
 
+TIMELINE_BUILDINGS = [
+    'TownCannonTowerDead', 'TownCannonTowerL2', 'TownCannonTowerL2Standalone', 'TownCannonTowerL3', 'TownCannonTowerL3Standalone',
+    'TownTownHallL2', 'TownTownHallL3', 'KingsCore'
+]
 
 # Name and points for building Strength & Unit effectivity calculations
 BUILDINGS = {
